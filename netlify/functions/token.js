@@ -4,9 +4,10 @@
 
 const UPSTASH_URL   = process.env.UPSTASH_REDIS_REST_URL;
 const UPSTASH_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
-const REDIS_KEY     = 'double_token_v2';
+const REDIS_KEY     = 'double_token_v2'; // v2 clears the incorrectly cached value
 const TTL_SECONDS   = 82800; // 23 hours
 
+// ── Upstash helpers (plain fetch, no npm packages needed) ──────────────
 async function redisGet(key) {
   const res = await fetch(`${UPSTASH_URL}/get/${encodeURIComponent(key)}`, {
     headers: { Authorization: `Bearer ${UPSTASH_TOKEN}` }
@@ -16,6 +17,7 @@ async function redisGet(key) {
 }
 
 async function redisSet(key, seconds, value) {
+  // Upstash REST API: POST /set/{key}/{value}/ex/{seconds}
   await fetch(
     `${UPSTASH_URL}/set/${encodeURIComponent(key)}/${encodeURIComponent(value)}/ex/${seconds}`,
     {
@@ -25,10 +27,13 @@ async function redisSet(key, seconds, value) {
   );
 }
 
+// ── Token logic ────────────────────────────────────────────────────────
 async function getToken() {
+  // 1. Try cached token
   const cached = await redisGet(REDIS_KEY);
   if (cached) return cached;
 
+  // 2. Generate new token
   const res = await fetch('https://api.doublehq.com/oauth/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -43,10 +48,12 @@ async function getToken() {
   const data = await res.json();
   if (!data.access_token) throw new Error('No access_token in Double response');
 
+  // 3. Cache in Upstash for 23 hours
   await redisSet(REDIS_KEY, TTL_SECONDS, data.access_token);
   return data.access_token;
 }
 
+// ── Handler ────────────────────────────────────────────────────────────
 exports.handler = async (event) => {
   const headers = {
     'Access-Control-Allow-Origin':  '*',

@@ -1211,19 +1211,28 @@ async function fetchAllApiData(){
     ecs.forEach(ec=>{ if(ec.id)endClosesMap[ec.id]=ec.yearMonth; });
     step(`✓ ${ecs.length} end closes`);
 
+    // Date filter: last 60 days only — reduces ~50k records to a few hundred
+    const since60 = new Date(today);
+    since60.setDate(since60.getDate() - 60);
+    const sinceISO = since60.toISOString();
+
     step('Loading non-closing tasks…');
     const ncTasks=await fetchPages(
-      '/api/non-closing-tasks?type=CLIENT_TASKS',null,100,
+      `/api/non-closing-tasks?type=CLIENT_TASKS&updatedFromTimestamp=${encodeURIComponent(sinceISO)}`,null,100,
       n=>setSrc(`Loading non-closing tasks… ${n} loaded`,false)
     );
-    step(`✓ ${ncTasks.length} non-closing tasks`);
+    // Exclude completed tasks — only active and overdue
+    const ncActive = ncTasks.filter(t => t.status !== 'done' && t.status !== 'cancelled' && t.deletedAt == null);
+    step(`✓ ${ncActive.length} active non-closing tasks (of ${ncTasks.length})`);
 
     step('Loading closing tasks…');
     const cTasks=await fetchPages(
-      '/api/tasks/',null,100,
+      `/api/tasks/?updatedFromTimestamp=${encodeURIComponent(sinceISO)}`,null,100,
       n=>setSrc(`Loading closing tasks… ${n} loaded`,false)
     );
-    step(`✓ ${cTasks.length} closing tasks`);
+    // Exclude completed tasks
+    const cActive = cTasks.filter(t => t.status !== 'done' && t.status !== 'completed');
+    step(`✓ ${cActive.length} active closing tasks (of ${cTasks.length})`);
 
     step('Building task list…');
     discoveredTags={};
@@ -1250,12 +1259,12 @@ async function fetchAllApiData(){
       };
     }
 
-    ncTasks.forEach(t=>{
+    ncActive.forEach(t=>{
       const due=t.dueDate?pd(t.dueDate):null;
       built.push(buildTask(t,due,t.dueDate||'','Non-closing'));
     });
 
-    cTasks.forEach(t=>{
+    cActive.forEach(t=>{
       let due=null,dueStr='';
       if(t.dueDate&&t.endCloseId&&endClosesMap[t.endCloseId]){
         due=nthBizDay(endClosesMap[t.endCloseId],t.dueDate);
