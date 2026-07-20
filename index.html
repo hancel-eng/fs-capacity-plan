@@ -1,0 +1,1406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Capacity Planner — Financial Synergy</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0e0f11;--surface:#16181c;--surface2:#1e2127;--surface3:#262b33;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);
+  --text:#e8eaf0;--muted:#7a8194;--accent:#4f8ef7;--accent2:#2563eb;
+  --green:#22c55e;--green-bg:rgba(34,197,94,0.1);--green-border:rgba(34,197,94,0.2);
+  --yellow:#f59e0b;--yellow-bg:rgba(245,158,11,0.1);--yellow-border:rgba(245,158,11,0.2);
+  --red:#ef4444;--red-bg:rgba(239,68,68,0.1);--red-border:rgba(239,68,68,0.25);
+  --mono:'DM Mono',monospace;--sans:'Sora',sans-serif;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;min-height:100vh;display:flex;flex-direction:column}
+/* NAV */
+nav{display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:52px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0}
+.nav-brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:13px;letter-spacing:.04em;text-transform:uppercase}
+.nav-brand .dot{width:8px;height:8px;background:var(--accent);border-radius:50%;box-shadow:0 0 8px var(--accent)}
+.nav-meta{font-family:var(--mono);font-size:11px;color:var(--muted)}
+/* SHELL */
+.shell{display:flex;flex:1;overflow:hidden}
+/* SIDEBAR */
+aside{width:200px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);padding:20px 0;display:flex;flex-direction:column;gap:4px}
+.sb-label{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:0 18px;margin:12px 0 6px}
+.sb-item{display:flex;align-items:center;gap:10px;padding:8px 18px;font-size:13px;color:var(--muted);cursor:pointer;border-left:2px solid transparent;transition:all .15s;user-select:none}
+.sb-item:hover{color:var(--text);background:var(--surface2)}
+.sb-item.active{color:var(--text);border-left-color:var(--accent);background:var(--surface2)}
+.sb-item .ic{font-size:15px;width:18px;text-align:center}
+.sb-badge{margin-left:auto;font-family:var(--mono);font-size:10px;background:var(--red-bg);color:var(--red);border:1px solid var(--red-border);border-radius:20px;padding:1px 6px;display:none}
+.sb-foot{margin-top:auto;padding:0 18px 12px}
+.sb-foot-label{font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:6px}
+.sb-foot-val{font-family:var(--mono);font-size:10px;color:var(--muted);line-height:1.8}
+/* MAIN */
+main{flex:1;overflow-y:auto;padding:28px 32px;display:flex;flex-direction:column;gap:20px}
+.page{display:none;flex-direction:column;gap:20px}
+.page.active{display:flex}
+/* PAGE HEADER */
+.ph{display:flex;align-items:flex-end;justify-content:space-between}
+.ph-title{font-size:20px;font-weight:600}
+.ph-sub{font-size:12px;color:var(--muted);margin-top:4px}
+/* CONTROLS BAR */
+.cb{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:9px 14px}
+.cb-sep{width:1px;height:18px;background:var(--border2);flex-shrink:0;margin:0 2px}
+.cb-lbl{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);white-space:nowrap}
+.cb-grp{display:flex;align-items:center;gap:5px}
+.tb{font-family:var(--mono);font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap}
+.tb:hover{color:var(--text);background:var(--surface2)}
+.tb.on{background:var(--accent2);border-color:var(--accent);color:#fff}
+.ci{font-family:var(--mono);font-size:11px;padding:4px 8px;border-radius:6px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);cursor:pointer}
+.ci:focus{outline:none;border-color:var(--accent)}
+select.ci option{background:var(--surface2)}
+/* SECTION HEAD */
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.sh-title{font-size:13px;font-weight:600}
+.sh-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.legend{display:flex;align-items:center;gap:14px;font-family:var(--mono);font-size:11px;color:var(--muted)}
+.leg-item{display:flex;align-items:center;gap:5px}
+.leg-dot{width:8px;height:8px;border-radius:2px}
+/* ALERT GRID */
+.ag{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.ac{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px;cursor:pointer;transition:border-color .2s,transform .15s}
+.ac:hover{transform:translateY(-1px);border-color:var(--border2)}
+.ac.red{border-color:var(--red-border);background:linear-gradient(135deg,var(--red-bg) 0%,var(--surface) 60%)}
+.ac.yel{border-color:var(--yellow-border);background:linear-gradient(135deg,var(--yellow-bg) 0%,var(--surface) 60%)}
+.ac.grn{border-color:var(--green-border);background:linear-gradient(135deg,var(--green-bg) 0%,var(--surface) 60%)}
+.ac-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.ac-status{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;padding:2px 8px;border-radius:20px}
+.ac.red .ac-status{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
+.ac.yel .ac-status{background:var(--yellow-bg);color:var(--yellow);border:1px solid var(--yellow-border)}
+.ac.grn .ac-status{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.ac-num{font-size:36px;font-weight:700;line-height:1;margin-bottom:4px}
+.ac.red .ac-num{color:var(--red)}.ac.yel .ac-num{color:var(--yellow)}.ac.grn .ac-num{color:var(--green)}
+.ac-lbl{font-size:12px;color:var(--muted)}
+.ac-names{margin-top:10px;display:flex;flex-wrap:wrap;gap:5px}
+.chip{font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:20px;background:var(--surface2);border:1px solid var(--border2);color:var(--muted)}
+/* ALERT BAR */
+.alert-bar{background:var(--surface);border:1px solid var(--red-border);border-radius:10px;padding:11px 16px;display:flex;align-items:center;gap:10px;font-size:13px}
+.alert-bar strong{color:var(--red)}.alert-bar span{color:var(--muted)}
+/* INFO BOX */
+.info-box{background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--muted);display:flex;gap:8px;align-items:flex-start}
+.info-box strong{color:var(--text)}
+/* DATA TABLE */
+.dt{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;overflow-x:auto}
+.dt table{width:100%;border-collapse:collapse;min-width:400px}
+.dt th{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);background:var(--surface2);white-space:nowrap}
+.dt td{padding:9px 14px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
+.dt tr:last-child td{border-bottom:none}
+.dt tr:hover td{background:var(--surface2)}
+/* HEATMAP */
+.day-cell{text-align:center;min-width:46px}
+.day-bar{width:36px;height:26px;border-radius:5px;display:flex;align-items:center;justify-content:center;margin:0 auto;font-family:var(--mono);font-size:11px;font-weight:500;cursor:default}
+.day-bar.red{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
+.day-bar.yellow{background:var(--yellow-bg);color:var(--yellow);border:1px solid var(--yellow-border)}
+.day-bar.green{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.day-bar.empty{background:var(--surface3);color:var(--muted);border:1px solid var(--border)}
+.wpct{font-family:var(--mono);font-size:12px;font-weight:500;text-align:center}
+.wpct.red{color:var(--red)}.wpct.yellow{color:var(--yellow)}.wpct.green{color:var(--green)}
+/* BADGES */
+.badge{display:inline-block;font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:4px;white-space:nowrap}
+.time-tag{font-family:var(--mono);font-size:11px;color:var(--accent);background:rgba(79,142,247,0.08);border:1px solid rgba(79,142,247,0.18);padding:2px 7px;border-radius:4px;white-space:nowrap}
+.task-tag{font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:4px;background:var(--surface3);border:1px solid var(--border2);color:var(--muted)}
+.overdue-badge{font-family:var(--mono);font-size:10px;padding:2px 6px;border-radius:4px;background:var(--red-bg);border:1px solid var(--red-border);color:var(--red);margin-left:5px}
+/* PROGRESS */
+.pbar{height:6px;background:var(--surface3);border-radius:3px;overflow:hidden;min-width:70px}
+.pfill{height:100%;border-radius:3px}
+.pfill.red{background:var(--red)}.pfill.yellow{background:var(--yellow)}.pfill.green{background:var(--green)}
+/* IMPORT BANNER */
+.import-banner{background:var(--surface2);border:1px dashed var(--border2);border-radius:10px;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.import-banner .ib-label{font-size:12px;color:var(--muted)}
+.import-banner .ib-label strong{color:var(--text);display:block;font-size:13px;margin-bottom:2px}
+/* BUTTONS */
+.btn{font-family:var(--mono);font-size:11px;padding:7px 14px;border-radius:7px;border:1px solid var(--border2);background:var(--surface3);color:var(--text);cursor:pointer;transition:all .15s;white-space:nowrap}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.primary{background:var(--accent2);border-color:var(--accent);color:#fff}
+.btn.primary:hover{background:var(--accent)}
+/* EMPTY STATE */
+.es{text-align:center;padding:48px 24px;color:var(--muted);font-size:13px}
+.es .ei{font-size:32px;margin-bottom:10px}
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:100;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:14px;width:520px;max-width:92vw;max-height:88vh;overflow-y:auto;padding:28px;display:flex;flex-direction:column;gap:16px}
+.modal-title{font-size:16px;font-weight:600}
+.modal-sub{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.6}
+.drop-zone{border:2px dashed var(--border2);border-radius:10px;padding:32px 20px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s}
+.drop-zone:hover,.drop-zone.over{border-color:var(--accent);background:rgba(79,142,247,0.05)}
+.dz-icon{font-size:28px;margin-bottom:10px}
+.dz-title{font-size:14px;font-weight:500;margin-bottom:4px}
+.dz-sub{font-size:12px;color:var(--muted)}
+.dz-hint{font-family:var(--mono);font-size:10px;margin-top:10px;color:var(--muted);line-height:1.7}
+.map-block{display:none;flex-direction:column;gap:8px}
+.map-block.show{display:flex}
+.map-lbl{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.frow{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+.fname{font-size:12px;color:var(--text);min-width:130px}
+.freq{font-family:var(--mono);font-size:9px;color:var(--red);margin-left:2px}
+.fsel{font-family:var(--mono);font-size:11px;padding:5px 8px;border-radius:6px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);flex:1}
+.fsel:focus{outline:none;border-color:var(--accent)}
+.mstatus{font-family:var(--mono);font-size:11px;padding:8px 12px;border-radius:6px;display:none}
+.mstatus.ok{display:block;background:var(--green-bg);border:1px solid var(--green-border);color:var(--green)}
+.mstatus.err{display:block;background:var(--red-bg);border:1px solid var(--red-border);color:var(--red)}
+.mactions{display:flex;justify-content:flex-end;gap:8px;padding-top:4px}
+/* TOOLTIP */
+[data-tip]{position:relative}
+[data-tip]:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:5px 10px;font-family:var(--mono);font-size:11px;color:var(--text);white-space:nowrap;z-index:99;pointer-events:none}
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:3px}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand"><div class="dot"></div>Financial Synergy — Capacity Planner</div>
+  <div class="nav-meta" id="nav-meta">No data loaded · Import a CSV from Double HQ</div>
+</nav>
+
+<div class="shell">
+  <aside>
+    <div class="sb-label">Views</div>
+    <div class="sb-item active" onclick="showPage('summary')">
+      <span class="ic">⚡</span> Summary
+      <span class="sb-badge" id="alert-badge">0</span>
+    </div>
+    <div class="sb-item" onclick="showPage('employee')"><span class="ic">👤</span> By Employee</div>
+    <div class="sb-item" onclick="showPage('client')"><span class="ic">🏢</span> By Client</div>
+    <div class="sb-item" onclick="showPage('task')"><span class="ic">✅</span> By Task</div>
+
+    <div class="sb-label" style="margin-top:16px">Data — API</div>
+    <div class="sb-item" onclick="openModal('connect')"><span class="ic">🔌</span> Connect to Double</div>
+    <div class="sb-item" onclick="openTagMapModal()"><span class="ic">🏷</span> Tag → Hours Map</div>
+    <div class="sb-item" id="sb-refresh" onclick="refreshApi()" style="display:none"><span class="ic">🔄</span> Refresh data</div>
+
+    <div class="sb-label" style="margin-top:8px">Data — CSV fallback</div>
+    <div class="sb-item" onclick="openModal('main')"><span class="ic">⬆</span> Import CSV</div>
+    <div class="sb-item" onclick="openModal('dept')"><span class="ic">📋</span> Import Dept. Legend</div>
+
+    <div class="sb-foot">
+      <div class="sb-foot-label">Source</div>
+      <div class="sb-foot-val" id="src-api" style="display:none">Double HQ API<br><span style="color:var(--yellow)">◌ </span>Not connected</div>
+      <div class="sb-foot-val" id="src-tasks">Double HQ CSV<br><span style="color:var(--yellow)">◌ </span>No file loaded</div>
+      <div class="sb-foot-val" id="src-dept" style="margin-top:8px;display:none">Dept. legend<br><span style="color:var(--yellow)">◌ </span>Not loaded</div>
+    </div>
+  </aside>
+
+  <main>
+
+    <!-- SUMMARY -->
+    <div class="page active" id="page-summary">
+      <div class="ph"><div><div class="ph-title">Summary Dashboard</div><div class="ph-sub">At-a-glance capacity alerts</div></div></div>
+      <div class="cb">
+        <span class="cb-lbl">Period</span>
+        <div class="cb-grp">
+          <button class="tb on" onclick="setP('s','day',this)">Today</button>
+          <button class="tb" onclick="setP('s','week',this)">This week</button>
+          <button class="tb" onclick="setP('s','month',this)">This month</button>
+          <button class="tb" onclick="setP('s','custom',this)">Custom</button>
+        </div>
+        <div class="cb-sep"></div>
+        <span class="cb-lbl">From</span><input type="date" class="ci" id="s-from" onchange="renderSummary()">
+        <span class="cb-lbl">To</span><input type="date" class="ci" id="s-to" onchange="renderSummary()">
+        <div class="cb-sep"></div>
+        <span class="cb-lbl">Dept</span><select class="ci" id="s-dept" onchange="renderSummary()"><option value="">All</option></select>
+        <span class="cb-lbl">Role</span><select class="ci" id="s-role" onchange="renderSummary()"><option value="">All</option></select>
+        <span class="cb-lbl">Employee</span><select class="ci" id="s-emp" onchange="renderSummary()"><option value="">All</option></select>
+      </div>
+      <div id="summary-content"><div class="es"><div class="ei">📂</div>Import a CSV from Double HQ to see your capacity summary.</div></div>
+    </div>
+
+    <!-- EMPLOYEE -->
+    <div class="page" id="page-employee">
+      <div class="ph"><div><div class="ph-title">Employee Capacity</div><div class="ph-sub">Daily scheduled hours per team member</div></div></div>
+      <div class="cb">
+        <span class="cb-lbl">Period</span>
+        <div class="cb-grp">
+          <button class="tb on" onclick="setP('e','week',this)">Week</button>
+          <button class="tb" onclick="setP('e','month',this)">Month</button>
+          <button class="tb" onclick="setP('e','custom',this)">Custom</button>
+        </div>
+        <div class="cb-sep"></div>
+        <span class="cb-lbl">From</span><input type="date" class="ci" id="e-from" onchange="renderEmployee()">
+        <span class="cb-lbl">To</span><input type="date" class="ci" id="e-to" onchange="renderEmployee()">
+        <div class="cb-sep"></div>
+        <span class="cb-lbl">Dept</span><select class="ci" id="e-dept" onchange="renderEmployee()"><option value="">All</option></select>
+        <span class="cb-lbl">Role</span><select class="ci" id="e-role" onchange="renderEmployee()"><option value="">All</option></select>
+        <span class="cb-lbl">Employee</span><select class="ci" id="e-emp" onchange="renderEmployee()"><option value="">All</option></select>
+      </div>
+      <div class="sh">
+        <div><div class="sh-title">Capacity heatmap</div><div class="sh-sub">Max threshold: 6.8h/day (85% of 8h)</div></div>
+        <div class="legend">
+          <div class="leg-item"><div class="leg-dot" style="background:var(--red)"></div>&gt;6.8h</div>
+          <div class="leg-item"><div class="leg-dot" style="background:var(--yellow)"></div>4–6.8h</div>
+          <div class="leg-item"><div class="leg-dot" style="background:var(--green)"></div>&lt;4h</div>
+        </div>
+      </div>
+      <div id="employee-content"><div class="es"><div class="ei">📂</div>Import a CSV from Double HQ to see employee capacity.</div></div>
+    </div>
+
+    <!-- CLIENT -->
+    <div class="page" id="page-client">
+      <div class="ph"><div><div class="ph-title">By Client</div><div class="ph-sub">Scheduled hours and tasks per client</div></div></div>
+      <div class="cb">
+        <span class="cb-lbl">Period</span>
+        <div class="cb-grp">
+          <button class="tb on" onclick="setP('c','week',this)">Week</button>
+          <button class="tb" onclick="setP('c','month',this)">Month</button>
+          <button class="tb" onclick="setP('c','custom',this)">Custom</button>
+        </div>
+        <div class="cb-sep"></div>
+        <span class="cb-lbl">From</span><input type="date" class="ci" id="c-from" onchange="renderClient()">
+        <span class="cb-lbl">To</span><input type="date" class="ci" id="c-to" onchange="renderClient()">
+        <div class="cb-sep"></div>
+        <span class="cb-lbl">Dept</span><select class="ci" id="c-dept" onchange="renderClient()"><option value="">All</option></select>
+        <span class="cb-lbl">Type</span><select class="ci" id="c-type" onchange="renderClient()"><option value="">All</option></select>
+      </div>
+      <div id="client-content"><div class="es"><div class="ei">📂</div>Import a CSV from Double HQ to see the client breakdown.</div></div>
+    </div>
+
+    <!-- TASK -->
+    <div class="page" id="page-task">
+      <div class="ph"><div><div class="ph-title">Task List</div><div class="ph-sub">All tasks with assignee, due date, and time estimates</div></div></div>
+      <div class="cb">
+        <span class="cb-lbl">Period</span>
+        <div class="cb-grp">
+          <button class="tb on" onclick="setP('t','week',this)">Week</button>
+          <button class="tb" onclick="setP('t','month',this)">Month</button>
+          <button class="tb" onclick="setP('t','custom',this)">Custom</button>
+        </div>
+        <div class="cb-sep"></div>
+        <span class="cb-lbl">From</span><input type="date" class="ci" id="t-from" onchange="renderTask()">
+        <span class="cb-lbl">To</span><input type="date" class="ci" id="t-to" onchange="renderTask()">
+        <div class="cb-sep"></div>
+        <span class="cb-lbl">Dept</span><select class="ci" id="t-dept" onchange="renderTask()"><option value="">All</option></select>
+        <span class="cb-lbl">Assignee</span><select class="ci" id="t-emp" onchange="renderTask()"><option value="">All</option></select>
+        <span class="cb-lbl">Client</span><select class="ci" id="t-client" onchange="renderTask()"><option value="">All</option></select>
+        <div class="cb-sep"></div>
+        <span class="cb-lbl">Filter</span>
+        <select class="ci" id="t-status" onchange="renderTask()">
+          <option value="">All tasks</option>
+          <option value="overdue">Overdue only</option>
+          <option value="notag">No time tag</option>
+        </select>
+      </div>
+      <div id="task-content"><div class="es"><div class="ei">📂</div>Import a CSV from Double HQ to see the task list.</div></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- MAIN IMPORT MODAL -->
+<div class="overlay" id="overlay-main" onclick="outsideClose('main',event)">
+  <div class="modal">
+    <div>
+      <div class="modal-title">Import tasks from Double HQ</div>
+      <div class="modal-sub">Export your task list as CSV from Double HQ and upload it here. Columns will be auto-detected — adjust the mapping if needed before importing.</div>
+    </div>
+    <div class="drop-zone" id="dz-main" onclick="document.getElementById('fi-main').click()">
+      <div class="dz-icon">📄</div>
+      <div class="dz-title" id="dz-main-title">Click to select file — or drag and drop</div>
+      <div class="dz-sub" id="dz-main-sub">Accepts .csv exported from Double HQ</div>
+      <div class="dz-hint">Expected columns: Task name · Assignee · Due date · Client · Time estimate / Tags · Section / Type</div>
+    </div>
+    <input type="file" id="fi-main" accept=".csv" style="display:none">
+    <div class="map-block" id="map-main">
+      <div class="map-lbl">Map your columns</div>
+      <div id="map-main-rows"></div>
+    </div>
+    <div class="mstatus" id="ms-main"></div>
+    <div class="mactions">
+      <button class="btn" onclick="closeModal('main')">Cancel</button>
+      <button class="btn primary" id="btn-main" disabled onclick="doMainImport()">Import data</button>
+    </div>
+  </div>
+</div>
+
+<!-- DEPT LEGEND MODAL -->
+<div class="overlay" id="overlay-dept" onclick="outsideClose('dept',event)">
+  <div class="modal">
+    <div>
+      <div class="modal-title">Import Department Legend</div>
+      <div class="modal-sub">Upload a two-column CSV mapping each employee to their department. Values should be <strong style="color:var(--text)">Accounting Services</strong> or <strong style="color:var(--text)">Tax</strong>.</div>
+    </div>
+    <div class="drop-zone" id="dz-dept" onclick="document.getElementById('fi-dept').click()">
+      <div class="dz-icon">🏷</div>
+      <div class="dz-title" id="dz-dept-title">Click to select file — or drag and drop</div>
+      <div class="dz-sub" id="dz-dept-sub">Two columns: Employee · Department</div>
+      <div class="dz-hint">Department values: Accounting Services · Tax</div>
+    </div>
+    <input type="file" id="fi-dept" accept=".csv" style="display:none">
+    <div class="mstatus" id="ms-dept"></div>
+    <div class="mactions">
+      <button class="btn" onclick="closeModal('dept')">Cancel</button>
+      <button class="btn primary" id="btn-dept" disabled onclick="doDeptImport()">Apply legend</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONNECT TO DOUBLE MODAL -->
+<div class="overlay" id="overlay-connect" onclick="outsideClose('connect',event)">
+  <div class="modal">
+    <div>
+      <div class="modal-title">Connect to Double HQ</div>
+      <div class="modal-sub">Your token is saved locally for 23 hours — you only need to do this once per day.</div>
+    </div>
+
+    <!-- STEP 1 -->
+    <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px">
+      <div style="font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent)">Step 1 — Get your token</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div class="frow"><span class="fname">Client ID</span><input type="text" class="fsel" id="inp-cid" placeholder="Your client_id" autocomplete="off" oninput="rebuildCurl()"></div>
+        <div class="frow"><span class="fname">Client Secret</span><input type="password" class="fsel" id="inp-csec" placeholder="Your client_secret" oninput="rebuildCurl()"></div>
+      </div>
+      <div style="font-size:12px;color:var(--muted)">Run this command in your terminal (Mac: Terminal · Windows: PowerShell):</div>
+      <div style="position:relative">
+        <code id="curl-cmd" style="display:block;font-family:var(--mono);font-size:10px;color:var(--accent);word-break:break-all;line-height:1.8;background:var(--bg);padding:10px 36px 10px 10px;border-radius:6px;border:1px solid var(--border2)">curl -X POST "https://api.doublehq.com/oauth/token" -H "Content-Type: application/x-www-form-urlencoded" -d "grant_type=client_credentials&client_id=YOUR_CLIENT_ID&client_secret=YOUR_CLIENT_SECRET"</code>
+        <button onclick="copyCurl(this)" style="position:absolute;top:6px;right:6px;font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:4px;border:1px solid var(--border2);background:var(--surface3);color:var(--muted);cursor:pointer">Copy</button>
+      </div>
+      <div style="font-size:11px;color:var(--muted);line-height:1.6">The response will look like:<br><code style="font-family:var(--mono);color:var(--green);font-size:10px">{"access_token":"eyJhbGc...","token_type":"Bearer"}</code></div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px">
+      <div style="font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent)">Step 2 — Paste your token</div>
+      <div style="font-size:12px;color:var(--muted)">Copy the value of <code style="font-family:var(--mono);color:var(--text)">access_token</code> from the terminal output and paste it here:</div>
+      <input type="text" class="fsel" id="inp-mtoken" placeholder='Paste access_token value here (starts with "eyJ...")' style="font-family:var(--mono);font-size:11px">
+    </div>
+
+    <div class="mstatus" id="ms-connect"></div>
+    <div class="mactions">
+      <button class="btn" onclick="closeModal('connect')">Cancel</button>
+      <button class="btn primary" onclick="doConnect()">Connect &amp; load data</button>
+    </div>
+  </div>
+</div>
+
+<!-- TAG MAP MODAL -->
+<div class="overlay" id="overlay-tagmap" onclick="outsideClose('tagmap',event)">
+  <div class="modal">
+    <div><div class="modal-title">Tag ID → Hours Mapping</div>
+    <div class="modal-sub">Assign an hour value to each Double tag ID found in your tasks. This is saved locally — only needs to be done once per new tag.</div></div>
+    <div id="tagmap-rows" style="display:flex;flex-direction:column;gap:8px;max-height:320px;overflow-y:auto"></div>
+    <div class="mstatus" id="ms-tagmap"></div>
+    <div class="mactions">
+      <button class="btn" onclick="closeModal('tagmap')">Close</button>
+      <button class="btn primary" onclick="saveTagMapping()">Save &amp; apply</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+// ── STATE ─────────────────────────────────────────────────────────────
+let tasks=[], csvHeaders=[], rawRows=[], deptRawRows=[];
+let deptMap={};
+const DEPT_COL={'Accounting Services':'#4f8ef7','Tax':'#a855f7'};
+const ROLE_COL={'Director':'#a855f7','Senior':'#4f8ef7','Transactional Accountant':'#14b8a6'};
+const KNOWN_ROLES=['Transactional Accountant','Senior','Director'];
+const today=new Date(); today.setHours(0,0,0,0);
+
+// ── DATE UTILS ───────────────────────────────────────────────────────
+// Use LOCAL date components so column labels and task matching are timezone-consistent
+const iso=d=>{
+  const y=d.getFullYear();
+  const m=String(d.getMonth()+1).padStart(2,'0');
+  const day=String(d.getDate()).padStart(2,'0');
+  return`${y}-${m}-${day}`;
+};
+// ISO date-only strings (YYYY-MM-DD) are parsed as UTC by JS, which shifts dates
+// in non-UTC timezones. Appending T00:00:00 forces local-time parsing.
+// Also handles YYYY-MM-DDTHH:MM:SSZ (UTC marker) by extracting only the date part.
+const pd=s=>{
+  if(!s)return null;
+  const clean=String(s).trim();
+  // YYYY-MM-DD (date only) → force local midnight
+  if(/^\d{4}-\d{2}-\d{2}$/.test(clean))
+    return new Date(clean+'T00:00:00');
+  // YYYY-MM-DDThh:mm:ss... (ISO with time, may have Z or offset) → use date part only as local
+  if(/^\d{4}-\d{2}-\d{2}T/.test(clean))
+    return new Date(clean.substring(0,10)+'T00:00:00');
+  // YYYY-MM-DD hh:mm:ss (space separator) → use date part only as local
+  if(/^\d{4}-\d{2}-\d{2} /.test(clean))
+    return new Date(clean.substring(0,10)+'T00:00:00');
+  // MM/DD/YYYY and other locale formats → parsed as local by browsers ✓
+  const d=new Date(clean);
+  return isNaN(d)?null:d;
+};
+const sow=d=>{const c=new Date(d);c.setDate(d.getDate()-((d.getDay()||7)-1));return c};
+const eow=d=>{const c=new Date(d);c.setDate(d.getDate()+(7-(d.getDay()||7)));return c};
+const som=d=>new Date(d.getFullYear(),d.getMonth(),1);
+const eom=d=>new Date(d.getFullYear(),d.getMonth()+1,0);
+
+function setRange(p,f,t){
+  document.getElementById(p+'-from').value=iso(f);
+  document.getElementById(p+'-to').value=iso(t);
+}
+function initDates(){
+  setRange('s',today,today);
+  setRange('e',sow(today),eow(today));
+  setRange('c',sow(today),eow(today));
+  setRange('t',sow(today),eow(today));
+}
+function setP(p,period,btn){
+  btn.closest('.cb-grp').querySelectorAll('.tb').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  if(period!=='custom'){
+    const f=period==='day'?today:period==='week'?sow(today):som(today);
+    const t=period==='day'?today:period==='week'?eow(today):eom(today);
+    setRange(p,f,t);
+  }
+  ({s:renderSummary,e:renderEmployee,c:renderClient,t:renderTask})[p]();
+}
+function inRange(date,p){
+  if(!date)return false;
+  const d=new Date(date);d.setHours(0,0,0,0);
+  const f=pd(document.getElementById(p+'-from').value);
+  const t=pd(document.getElementById(p+'-to').value);
+  if(f&&d<f)return false;
+  if(t&&d>t)return false;
+  return true;
+}
+function colorOf(h){return!h||h===0?'empty':h>6.8?'red':h>=4?'yellow':'green'}
+function pct(h){return Math.round((h/8)*100)}
+function badge(val,col){return`<span class="badge" style="background:${col}22;color:${col};border:1px solid ${col}44">${val}</span>`}
+
+// Count Mon–Fri days in a date range
+function workingDays(from,to){
+  if(!from||!to)return 5;
+  let count=0;const d=new Date(from);
+  while(d<=to){const day=d.getDay();if(day!==0&&day!==6)count++;d.setDate(d.getDate()+1)}
+  return Math.max(count,1);
+}
+// Period-aware utilization % and color (based on total available hours in range)
+function utilPct(h,totalH){return Math.min(Math.round((h/totalH)*100),999)}
+function utilColor(h,totalH){const p=h/totalH;return p>0.85?'red':p>=0.5?'yellow':p>0?'green':'empty'}
+
+// ── PAGE NAV ─────────────────────────────────────────────────────────
+function showPage(n){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(s=>s.classList.remove('active'));
+  document.getElementById('page-'+n).classList.add('active');
+  const idx={summary:0,employee:1,client:2,task:3};
+  if(idx[n]!==undefined)document.querySelectorAll('.sb-item')[idx[n]].classList.add('active');
+}
+
+// ── MODAL SYSTEM ─────────────────────────────────────────────────────
+function openModal(id){document.getElementById('overlay-'+id).classList.add('open')}
+function closeModal(id){
+  document.getElementById('overlay-'+id).classList.remove('open');
+  if(id==='main'){
+    document.getElementById('map-main').classList.remove('show');
+    setMs('main','','');
+    document.getElementById('btn-main').disabled=true;
+    document.getElementById('fi-main').value='';
+    document.getElementById('dz-main-title').textContent='Click to select file — or drag and drop';
+    document.getElementById('dz-main-sub').textContent='Accepts .csv exported from Double HQ';
+    rawRows=[];csvHeaders=[];
+  } else {
+    setMs('dept','','');
+    document.getElementById('btn-dept').disabled=true;
+    document.getElementById('fi-dept').value='';
+    document.getElementById('dz-dept-title').textContent='Click to select file — or drag and drop';
+    document.getElementById('dz-dept-sub').textContent='Two columns: Employee · Department';
+    deptRawRows=[];
+  }
+}
+function outsideClose(id,e){if(e.target===document.getElementById('overlay-'+id))closeModal(id)}
+function setMs(id,type,msg){
+  const el=document.getElementById('ms-'+id);
+  el.className='mstatus'+(type?' '+type:'');
+  el.textContent=msg;
+}
+
+// ── CSV PARSER ───────────────────────────────────────────────────────
+function splitLine(line){
+  const out=[];let cur='',q=false;
+  for(let i=0;i<line.length;i++){
+    if(line[i]==='"'){q=!q}
+    else if(line[i]===','&&!q){out.push(cur.trim());cur=''}
+    else cur+=line[i];
+  }
+  out.push(cur.trim());
+  return out.map(v=>v.replace(/^"|"$/g,'').trim());
+}
+function parseCSVText(text){
+  const lines=text.trim().split(/\r?\n/).filter(l=>l.trim());
+  if(lines.length<2)return null;
+  const headers=splitLine(lines[0]);
+  const rows=lines.slice(1).map(l=>{
+    const v=splitLine(l);
+    const o={};headers.forEach((h,i)=>o[h]=v[i]||'');
+    return o;
+  });
+  return{headers,rows};
+}
+
+// ── DRAG/DROP WIRING ─────────────────────────────────────────────────
+function wireDZ(dzId,fileId,onFile){
+  const dz=document.getElementById(dzId);
+  dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over')});
+  dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
+  dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');const f=e.dataTransfer.files[0];if(f)onFile(f)});
+  document.getElementById(fileId).addEventListener('change',e=>{if(e.target.files[0])onFile(e.target.files[0])});
+}
+
+// ── MAIN CSV IMPORT ───────────────────────────────────────────────────
+const FIELDS=[
+  {key:'task',    label:'Task name',          req:true,  g:['task','name','title','subject']},
+  {key:'assignee',label:'Assignee',           req:true,  g:['assignee','assigned','user','member','owner','person']},
+  {key:'role',    label:'Role',               req:false, g:['role','position','level','title']},
+  {key:'client',  label:'Client / Project',   req:false, g:['client','company','account','project','customer']},
+  {key:'due',     label:'Due date',           req:false, g:['due','deadline','date','end']},
+  {key:'time',    label:'Time estimate / Tag',req:false, g:['time','tag','estimate','hours','duration','effort']},
+  {key:'type',    label:'Type / Section',     req:false, g:['type','section','category','kind','label']},
+  {key:'status',  label:'Status',             req:false, g:['status','state','stage']},
+];
+function guess(g){return csvHeaders.find(h=>g.some(k=>h.toLowerCase().includes(k)))||''}
+
+function loadMainFile(file){
+  if(!file.name.toLowerCase().endsWith('.csv')){setMs('main','err','Please select a .csv file.');return}
+  document.getElementById('dz-main-title').textContent=file.name;
+  document.getElementById('dz-main-sub').textContent=(file.size/1024).toFixed(1)+' KB';
+  const r=new FileReader();
+  r.onload=e=>{
+    const parsed=parseCSVText(e.target.result);
+    if(!parsed){setMs('main','err','CSV appears empty or invalid.');return}
+    csvHeaders=parsed.headers;rawRows=parsed.rows;
+    buildMainMapping();
+    setMs('main','ok',`✓ ${rawRows.length} rows loaded — review mapping below, then click Import.`);
+    document.getElementById('btn-main').disabled=false;
+  };
+  r.readAsText(file);
+}
+
+function buildMainMapping(){
+  document.getElementById('map-main-rows').innerHTML=FIELDS.map(f=>{
+    const g=guess(f.g);
+    const opts=['<option value="">-- skip --</option>',...csvHeaders.map(h=>`<option value="${h}"${h===g?' selected':''}>${h}</option>`)].join('');
+    return`<div class="frow"><span class="fname">${f.label}${f.req?'<span class="freq">*</span>':''}</span><select class="fsel" id="fm-${f.key}">${opts}</select></div>`;
+  }).join('');
+  document.getElementById('map-main').classList.add('show');
+}
+
+function extractHours(s){
+  if(!s)return null;
+  const d=parseFloat(String(s).replace(',','.'));
+  if(!isNaN(d)&&d>0&&d<=24)return Math.round(d*100)/100;
+  const hr=String(s).match(/(\d+(?:\.\d+)?)\s*h/i);
+  const mn=String(s).match(/(\d+)\s*m(?:in)?/i);
+  let t=0;if(hr)t+=parseFloat(hr[1]);if(mn)t+=parseInt(mn[1])/60;
+  return t>0?Math.round(t*100)/100:null;
+}
+
+function normalizeRole(raw){
+  if(!raw)return'';
+  const r=raw.trim();
+  return KNOWN_ROLES.find(k=>r.toLowerCase().includes(k.toLowerCase()))||r;
+}
+
+function doMainImport(){
+  const m={};FIELDS.forEach(f=>{m[f.key]=document.getElementById('fm-'+f.key).value});
+  if(!m.task||!m.assignee){setMs('main','err','Task name and Assignee are required.');return}
+  tasks=rawRows.map(row=>{
+    const dRaw=m.due?row[m.due]:'';
+    const due=pd(dRaw);
+    const tRaw=m.time?row[m.time]:'';
+    return{
+      task:(m.task?row[m.task]:'')||'Untitled',
+      assignee:(m.assignee?row[m.assignee]:'')||'Unassigned',
+      role:normalizeRole(m.role?row[m.role]:''),
+      client:(m.client?row[m.client]:'')||'',
+      due,dueStr:dRaw,
+      time:extractHours(tRaw),timeStr:tRaw,
+      type:(m.type?row[m.type]:'')||'',
+      status:(m.status?row[m.status]:'')||'',
+      overdue:due&&due<today,
+      department:(()=>{const e=deptMap[(m.assignee?row[m.assignee]:'')||''];return e?e.department||'':''})(),
+    };
+  });
+  // if legend already loaded, override dept+role with legend values
+  if(Object.keys(deptMap).length){
+    tasks.forEach(t=>{
+      const entry=deptMap[t.assignee];
+      if(entry){
+        t.department=entry.department||t.department;
+        if(entry.role)t.role=entry.role;
+      }
+    });
+  }
+  populateFilters();
+  const n=tasks.length,od=tasks.filter(t=>t.overdue).length;
+  document.getElementById('nav-meta').textContent=`${n} tasks loaded · Double HQ`;
+  document.getElementById('src-tasks').innerHTML=`Double HQ export<br><span style="color:var(--green)">● </span>${n} tasks`;
+  const b=document.getElementById('alert-badge');b.textContent=od;b.style.display=od?'inline':'none';
+  closeModal('main');
+  renderSummary();renderEmployee();renderClient();renderTask();
+}
+
+// ── DEPT LEGEND IMPORT ────────────────────────────────────────────────
+function loadDeptFile(file){
+  if(!file.name.toLowerCase().endsWith('.csv')){setMs('dept','err','Please select a .csv file.');return}
+  document.getElementById('dz-dept-title').textContent=file.name;
+  document.getElementById('dz-dept-sub').textContent=(file.size/1024).toFixed(1)+' KB';
+  const r=new FileReader();
+  r.onload=e=>{
+    const parsed=parseCSVText(e.target.result);
+    if(!parsed){setMs('dept','err','CSV appears empty or invalid.');return}
+    deptRawRows=parsed.rows;
+    setMs('dept','ok',`✓ ${deptRawRows.length} employees found — click Apply to map departments.`);
+    document.getElementById('btn-dept').disabled=false;
+  };
+  r.readAsText(file);
+}
+
+function doDeptImport(){
+  if(!deptRawRows.length)return;
+  const keys=Object.keys(deptRawRows[0]);
+  const empKey=keys.find(k=>k.toLowerCase().includes('employee')||k.toLowerCase().includes('name')||k.toLowerCase().includes('assignee'))||keys[0];
+  const deptKey=keys.find(k=>k.toLowerCase().includes('department')||k.toLowerCase().includes('dept'))||keys[1];
+  const roleKey=keys.find(k=>k.toLowerCase().includes('role')||k.toLowerCase().includes('position')||k.toLowerCase().includes('level'))||null;
+  deptMap={};
+  deptRawRows.forEach(r=>{
+    if(r[empKey]){
+      deptMap[r[empKey].trim()]={
+        department:r[deptKey]?.trim()||'',
+        role:roleKey?normalizeRole(r[roleKey]?.trim()||''):'',
+      };
+    }
+  });
+  // enrich existing tasks with both department and role from legend
+  tasks.forEach(t=>{
+    const entry=deptMap[t.assignee];
+    if(entry){
+      t.department=entry.department;
+      if(entry.role) t.role=entry.role;
+    }
+  });
+  populateFilters();
+  const count=Object.keys(deptMap).length;
+  const hasRole=roleKey&&deptRawRows.some(r=>r[roleKey]?.trim());
+  const ds=document.getElementById('src-dept');
+  ds.style.display='block';
+  ds.innerHTML=`Dept. legend<br><span style="color:var(--green)">● </span>${count} employees mapped${hasRole?' · roles included':''}`;
+  closeModal('dept');
+  renderSummary();renderEmployee();renderClient();renderTask();
+}
+
+// ── FILTERS ───────────────────────────────────────────────────────────
+function populateFilters(){
+  const emps=[...new Set(tasks.map(t=>t.assignee).filter(Boolean))].sort();
+  const clients=[...new Set(tasks.map(t=>t.client).filter(Boolean))].sort();
+  const types=[...new Set(tasks.map(t=>t.type).filter(Boolean))].sort();
+  const rolesRaw=[...new Set(tasks.map(t=>t.role).filter(Boolean))].sort();
+  const roles=[...new Set([...KNOWN_ROLES.filter(k=>rolesRaw.includes(k)),...rolesRaw])];
+  const depts=[...new Set(tasks.map(t=>t.department).filter(Boolean))].sort();
+
+  const opt=(v,arr,lbl)=>arr.map(x=>`<option>${x}</option>`).join('');
+  ['s-emp','e-emp','t-emp'].forEach(id=>{
+    document.getElementById(id).innerHTML='<option value="">All</option>'+emps.map(e=>`<option>${e}</option>`).join('');
+  });
+  ['s-role','e-role'].forEach(id=>{
+    document.getElementById(id).innerHTML='<option value="">All</option>'+roles.map(r=>`<option>${r}</option>`).join('');
+  });
+  ['s-dept','e-dept','c-dept','t-dept'].forEach(id=>{
+    document.getElementById(id).innerHTML='<option value="">All</option>'+depts.map(d=>`<option>${d}</option>`).join('');
+  });
+  document.getElementById('t-client').innerHTML='<option value="">All</option>'+clients.map(c=>`<option>${c}</option>`).join('');
+  document.getElementById('c-type').innerHTML='<option value="">All</option>'+types.map(t=>`<option>${t}</option>`).join('');
+}
+
+// ── RENDER SUMMARY ────────────────────────────────────────────────────
+function renderSummary(){
+  if(!tasks.length)return;
+  const deptF=document.getElementById('s-dept').value;
+  const roleF=document.getElementById('s-role').value;
+  const empF=document.getElementById('s-emp').value;
+
+  // ── Period baseline ───────────────────────────────────────────────
+  const fromD=pd(document.getElementById('s-from').value);
+  const toD=pd(document.getElementById('s-to').value);
+  const wDays=workingDays(fromD,toD);          // e.g. 5 for a week
+  const totalAvailH=wDays*8;                   // e.g. 40h/week
+  const capacityH=totalAvailH*0.85;            // e.g. 34h/week  ← the threshold
+
+  const filtered=tasks.filter(t=>inRange(t.due,'s')
+    &&(!deptF||t.department===deptF)
+    &&(!roleF||t.role===roleF)
+    &&(!empF||t.assignee===empF));
+
+  const byEmp={};
+  filtered.forEach(t=>{
+    if(!byEmp[t.assignee])byEmp[t.assignee]={name:t.assignee,role:t.role,dept:t.department,hours:0,count:0};
+    byEmp[t.assignee].hours+=t.time||0;
+    byEmp[t.assignee].count++;
+  });
+  const arr=Object.values(byEmp);
+  // Use period-aware thresholds for alert cards
+  const over=arr.filter(e=>e.hours>capacityH);
+  const ok=arr.filter(e=>e.hours>=totalAvailH*0.5&&e.hours<=capacityH);
+  const avail=arr.filter(e=>e.hours>0&&e.hours<totalAvailH*0.5);
+  const od=tasks.filter(t=>t.overdue);
+
+  // Role breakdown
+  const byRole={};
+  filtered.forEach(t=>{
+    const r=t.role||'No role';
+    if(!byRole[r])byRole[r]={role:r,hours:0,count:0,people:new Set()};
+    byRole[r].hours+=t.time||0;byRole[r].count++;byRole[r].people.add(t.assignee);
+  });
+  const roleArr=Object.values(byRole).filter(r=>r.role!=='No role').sort((a,b)=>b.hours-a.hours);
+
+  // Dept breakdown (only if legend loaded)
+  const hasDept=Object.keys(deptMap).length>0;
+  const byDept={};
+  if(hasDept){
+    filtered.forEach(t=>{
+      const d=t.department||'No dept';
+      if(!byDept[d])byDept[d]={dept:d,hours:0,count:0,people:new Set()};
+      byDept[d].hours+=t.time||0;byDept[d].count++;byDept[d].people.add(t.assignee);
+    });
+  }
+  const deptArr=Object.values(byDept).sort((a,b)=>b.hours-a.hours);
+
+  function shareBar(val,tot,col){
+    const p=tot>0?Math.round((val/tot)*100):0;
+    return`<div style="display:flex;align-items:center;gap:8px"><div class="pbar" style="width:90px"><div class="pfill" style="width:${p}%;background:${col}"></div></div><span style="font-family:var(--mono);font-size:11px;color:var(--muted)">${p}%</span></div>`;
+  }
+
+  let html='';
+
+  // Alert bar
+  if(over.length||od.length){
+    html+=`<div class="alert-bar">⚠&ensp;<div>${over.length?`<strong>${over.length} employee${over.length>1?'s':''} overloaded</strong> `:''}${od.length?`<span>· ${od.length} overdue task${od.length>1?'s':''}</span>`:''}</div></div>`;
+  }
+
+  // Alert cards
+  html+=`<div>
+    <div class="sh"><div><div class="sh-title">Capacity by employee</div><div class="sh-sub">Capacity baseline: ${capacityH.toFixed(0)}h (85% of ${totalAvailH.toFixed(0)}h available across ${wDays} working day${wDays!==1?'s':''})</div></div>
+      <div class="legend">
+        <div class="leg-item"><div class="leg-dot" style="background:var(--red)"></div>Over ${capacityH.toFixed(0)}h</div>
+        <div class="leg-item"><div class="leg-dot" style="background:var(--yellow)"></div>On track</div>
+        <div class="leg-item"><div class="leg-dot" style="background:var(--green)"></div>Available</div>
+      </div>
+    </div>
+    <div class="ag">
+      <div class="ac red" onclick="showPage('employee')">
+        <div class="ac-top"><span>🔴</span><span class="ac-status">Overloaded</span></div>
+        <div class="ac-num">${over.length}</div>
+        <div class="ac-lbl">employees over ${capacityH.toFixed(0)}h capacity</div>
+        <div class="ac-names">${over.map(e=>`<span class="chip">${e.name} ${e.hours.toFixed(1)}h</span>`).join('')||'<span class="chip" style="color:var(--green)">None ✓</span>'}</div>
+      </div>
+      <div class="ac yel" onclick="showPage('employee')">
+        <div class="ac-top"><span>🟡</span><span class="ac-status">On Track</span></div>
+        <div class="ac-num">${ok.length}</div>
+        <div class="ac-lbl">employees within healthy range</div>
+        <div class="ac-names">${ok.slice(0,5).map(e=>`<span class="chip">${e.name}</span>`).join('')}</div>
+      </div>
+      <div class="ac grn" onclick="showPage('employee')">
+        <div class="ac-top"><span>🟢</span><span class="ac-status">Available</span></div>
+        <div class="ac-num">${avail.length}</div>
+        <div class="ac-lbl">employees with open capacity</div>
+        <div class="ac-names">${avail.map(e=>`<span class="chip">${e.name} ${utilPct(e.hours,totalAvailH)}%</span>`).join('')||'<span class="chip">None</span>'}</div>
+      </div>
+    </div>
+  </div>`;
+
+  // Action items table
+  html+=`<div>
+    <div class="sh"><div><div class="sh-title">Action items</div></div></div>
+    <div class="dt"><table>
+      <thead><tr><th>Employee</th><th>Role</th>${hasDept?'<th>Dept</th>':''}<th>Hrs scheduled</th><th>Capacity (85%)</th><th>Tasks</th><th>Utilization</th><th>Suggestion</th></tr></thead>
+      <tbody>
+        ${arr.sort((a,b)=>b.hours-a.hours).map(e=>{
+          const uPct=utilPct(e.hours,totalAvailH);
+          const cls=utilColor(e.hours,totalAvailH);
+          const rCol=ROLE_COL[e.role]||'var(--muted)';
+          const dCol=DEPT_COL[e.dept]||'var(--muted)';
+          const action=e.hours>capacityH?'⚠ Redistribute tasks':e.hours<totalAvailH*0.5?'→ Assign more work':'✓ No action needed';
+          return`<tr>
+            <td style="font-weight:500">${e.name}</td>
+            <td>${e.role?badge(e.role,rCol):'<span style="color:var(--muted)">—</span>'}</td>
+            ${hasDept?`<td>${e.dept?badge(e.dept,dCol):'<span style="color:var(--muted)">—</span>'}</td>`:''}
+            <td><span class="wpct ${cls}">${e.hours.toFixed(2)}h</span></td>
+            <td style="font-family:var(--mono);font-size:12px;color:var(--muted)">${capacityH.toFixed(0)}h / ${totalAvailH.toFixed(0)}h</td>
+            <td style="font-family:var(--mono);font-size:12px">${e.count}</td>
+            <td><div style="display:flex;align-items:center;gap:8px"><div class="pbar" style="width:90px"><div class="pfill ${cls}" style="width:${Math.min(uPct,100)}%"></div></div><span style="font-family:var(--mono);font-size:11px;color:var(--muted)">${uPct}%</span></div></td>
+            <td style="font-size:12px;color:var(--muted)">${action}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table></div>
+  </div>`;
+
+  // Role breakdown
+  if(roleArr.length){
+    const totR=roleArr.reduce((a,r)=>a+r.hours,0);
+    html+=`<div>
+      <div class="sh"><div><div class="sh-title">Capacity by role</div><div class="sh-sub">Workload distribution across roles</div></div></div>
+      <div class="dt"><table>
+        <thead><tr><th>Role</th><th>People</th><th>Total hrs</th><th>Tasks</th><th>Avg hrs/person</th><th>Share of workload</th></tr></thead>
+        <tbody>
+          ${roleArr.map(r=>{
+            const col=ROLE_COL[r.role]||'var(--muted)';
+            const avg=r.people.size?r.hours/r.people.size:0;
+            return`<tr>
+              <td><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:2px;background:${col};flex-shrink:0"></span><span style="font-weight:500">${r.role}</span></span></td>
+              <td style="font-family:var(--mono);font-size:12px">${r.people.size}</td>
+              <td style="font-family:var(--mono);font-size:12px">${r.hours.toFixed(1)}h</td>
+              <td style="font-family:var(--mono);font-size:12px">${r.count}</td>
+              <td style="font-family:var(--mono);font-size:12px">${avg.toFixed(1)}h</td>
+              <td>${shareBar(r.hours,totR,col)}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table></div>
+    </div>`;
+  }
+
+  // Dept breakdown (only when legend loaded)
+  if(hasDept&&deptArr.length){
+    const totD=deptArr.reduce((a,d)=>a+d.hours,0);
+    html+=`<div>
+      <div class="sh"><div><div class="sh-title">Capacity by department</div><div class="sh-sub">Accounting Services vs. Tax workload split</div></div></div>
+      <div class="dt"><table>
+        <thead><tr><th>Department</th><th>People</th><th>Total hrs</th><th>Tasks</th><th>Avg hrs/person</th><th>Share of workload</th></tr></thead>
+        <tbody>
+          ${deptArr.map(d=>{
+            const col=DEPT_COL[d.dept]||'var(--muted)';
+            const avg=d.people.size?d.hours/d.people.size:0;
+            return`<tr>
+              <td><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:2px;background:${col};flex-shrink:0"></span><span style="font-weight:500">${d.dept}</span></span></td>
+              <td style="font-family:var(--mono);font-size:12px">${d.people.size}</td>
+              <td style="font-family:var(--mono);font-size:12px">${d.hours.toFixed(1)}h</td>
+              <td style="font-family:var(--mono);font-size:12px">${d.count}</td>
+              <td style="font-family:var(--mono);font-size:12px">${avg.toFixed(1)}h</td>
+              <td>${shareBar(d.hours,totD,col)}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table></div>
+    </div>`;
+  }
+
+  html+=`<div class="import-banner">
+    <div class="ib-label"><strong>Data source: Double HQ CSV export</strong>${tasks.length} tasks loaded</div>
+    <button class="btn primary" onclick="openModal('main')">⬆ Replace CSV</button>
+  </div>`;
+
+  document.getElementById('summary-content').innerHTML=html;
+}
+
+// ── RENDER EMPLOYEE ───────────────────────────────────────────────────
+function renderEmployee(){
+  if(!tasks.length)return;
+  const deptF=document.getElementById('e-dept').value;
+  const roleF=document.getElementById('e-role').value;
+  const empF=document.getElementById('e-emp').value;
+  const hasDept=Object.keys(deptMap).length>0;
+
+  const from=pd(document.getElementById('e-from').value);
+  const to=pd(document.getElementById('e-to').value);
+  if(!from||!to){document.getElementById('employee-content').innerHTML='<div class="es"><div class="ei">📅</div>Set a date range.</div>';return}
+
+  const dates=[];
+  for(let d=new Date(from);d<=to;d.setDate(d.getDate()+1))dates.push(new Date(d));
+  if(dates.length>31){document.getElementById('employee-content').innerHTML='<div class="es"><div class="ei">⚠</div>Select 31 days or fewer for the heatmap.</div>';return}
+
+  const filtered=tasks.filter(t=>{
+    if(!t.due)return false;
+    const d=new Date(t.due);d.setHours(0,0,0,0);
+    if(d<from||d>to)return false;
+    if(deptF&&t.department!==deptF)return false;
+    if(roleF&&t.role!==roleF)return false;
+    if(empF&&t.assignee!==empF)return false;
+    return true;
+  });
+
+  const empInfo={};
+  tasks.forEach(t=>{if(!empInfo[t.assignee])empInfo[t.assignee]={role:t.role,dept:t.department}});
+  const emps=[...new Set(filtered.map(t=>t.assignee))].sort();
+  if(!emps.length){document.getElementById('employee-content').innerHTML='<div class="es"><div class="ei">🔍</div>No tasks in this date range.</div>';return}
+
+  document.getElementById('employee-content').innerHTML=`<div class="dt"><table>
+    <thead><tr>
+      <th>Employee</th><th>Role</th>${hasDept?'<th>Dept</th>':''}
+      ${dates.map(d=>`<th style="text-align:center;min-width:44px">${d.toLocaleDateString('en-US',{weekday:'short'})}<br><span style="font-weight:400;opacity:.6">${d.getMonth()+1}/${d.getDate()}</span></th>`).join('')}
+      <th style="text-align:center">Total</th>
+    </tr></thead>
+    <tbody>
+      ${emps.map(emp=>{
+        const info=empInfo[emp]||{};
+        const rCol=ROLE_COL[info.role]||'var(--muted)';
+        const dCol=DEPT_COL[info.dept]||'var(--muted)';
+        const dayH=dates.map(d=>{
+          const ds=iso(d);
+          return filtered.filter(t=>t.assignee===emp&&t.due&&iso(t.due)===ds).reduce((a,t)=>a+(t.time||0),0);
+        });
+        const total=dayH.reduce((a,b)=>a+b,0);
+        const cls=colorOf(total/dates.length);
+        return`<tr>
+          <td style="font-weight:500;white-space:nowrap">${emp}</td>
+          <td>${info.role?badge(info.role,rCol):'<span style="color:var(--muted)">—</span>'}</td>
+          ${hasDept?`<td>${info.dept?badge(info.dept,dCol):'<span style="color:var(--muted)">—</span>'}</td>`:''}
+          ${dayH.map(h=>{const c=colorOf(h);return`<td class="day-cell"><div class="day-bar ${c}" data-tip="${h.toFixed(2)}h · ${pct(h)}%">${h>0?h.toFixed(2):'—'}</div></td>`}).join('')}
+          <td class="wpct ${cls}" style="text-align:center">${total.toFixed(2)}h</td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table></div>`;
+}
+
+// ── RENDER CLIENT ─────────────────────────────────────────────────────
+function renderClient(){
+  if(!tasks.length)return;
+  const deptF=document.getElementById('c-dept').value;
+  const typeF=document.getElementById('c-type').value;
+
+  const filtered=tasks.filter(t=>{
+    if(!inRange(t.due,'c'))return false;
+    if(deptF&&t.department!==deptF)return false;
+    if(typeF&&t.type!==typeF)return false;
+    return true;
+  });
+
+  const byC={};
+  filtered.forEach(t=>{
+    const k=t.client||'(No client)';
+    if(!byC[k])byC[k]={name:k,tasks:[],hours:0,types:new Set(),people:new Set()};
+    byC[k].tasks.push(t);byC[k].hours+=t.time||0;
+    if(t.type)byC[k].types.add(t.type);
+    byC[k].people.add(t.assignee);
+  });
+
+  const arr=Object.values(byC).sort((a,b)=>b.hours-a.hours);
+  if(!arr.length){document.getElementById('client-content').innerHTML='<div class="es"><div class="ei">🔍</div>No tasks in this range.</div>';return}
+
+  const totalTeamHours=arr.reduce((a,c)=>a+c.hours,0);
+
+  document.getElementById('client-content').innerHTML=`
+    <div class="info-box"><span style="font-size:15px;flex-shrink:0">ℹ</span><span><strong>Relative Load</strong> = % of total team hours this client consumes in the selected period. Example: if the team has 40h booked and a client takes 8h → 20% of team.</span></div>
+    <div class="dt"><table>
+      <thead><tr><th>Client</th><th>Tasks</th><th>Hours</th><th>Types</th><th>Assignees</th><th>Relative load</th></tr></thead>
+      <tbody>
+        ${arr.map(c=>{
+          const cls=colorOf(c.hours);
+          const rel=totalTeamHours>0?Math.round((c.hours/totalTeamHours)*100):0;
+          const barCls=rel>40?'red':rel>20?'yellow':'green';
+          return`<tr>
+            <td style="font-weight:500">${c.name}</td>
+            <td style="font-family:var(--mono);font-size:12px">${c.tasks.length}</td>
+            <td><span class="wpct ${cls}" style="font-size:12px">${c.hours.toFixed(1)}h</span></td>
+            <td>${[...c.types].slice(0,2).map(t=>`<span class="task-tag">${t}</span>`).join(' ')}</td>
+            <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${[...c.people].slice(0,3).join(', ')}${c.people.size>3?` +${c.people.size-3}`:''}</td>
+            <td><div style="display:flex;align-items:center;gap:8px"><div class="pbar"><div class="pfill ${barCls}" style="width:${rel}%"></div></div><span style="font-family:var(--mono);font-size:10px;color:var(--muted)">${rel}% of team</span></div></td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table></div>`;
+}
+
+// ── RENDER TASK ───────────────────────────────────────────────────────
+function renderTask(){
+  if(!tasks.length)return;
+  const deptF=document.getElementById('t-dept').value;
+  const empF=document.getElementById('t-emp').value;
+  const clientF=document.getElementById('t-client').value;
+  const stF=document.getElementById('t-status').value;
+  const hasDept=Object.keys(deptMap).length>0;
+
+  let filtered=tasks.filter(t=>{
+    if(!inRange(t.due,'t'))return false;
+    if(deptF&&t.department!==deptF)return false;
+    if(empF&&t.assignee!==empF)return false;
+    if(clientF&&t.client!==clientF)return false;
+    if(stF==='overdue'&&!t.overdue)return false;
+    if(stF==='notag'&&t.time!==null)return false;
+    return true;
+  });
+  filtered.sort((a,b)=>{
+    if(a.overdue!==b.overdue)return a.overdue?-1:1;
+    if(!a.due&&!b.due)return 0;if(!a.due)return 1;if(!b.due)return-1;
+    return a.due-b.due;
+  });
+  if(!filtered.length){document.getElementById('task-content').innerHTML='<div class="es"><div class="ei">🔍</div>No tasks match the current filters.</div>';return}
+
+  document.getElementById('task-content').innerHTML=`
+    <div style="font-family:var(--mono);font-size:11px;color:var(--muted)">${filtered.length} task${filtered.length!==1?'s':''} shown</div>
+    <div class="dt"><table>
+      <thead><tr><th>Task</th><th>Client</th><th>Assignee</th><th>Role</th>${hasDept?'<th>Dept</th>':''}<th>Due</th><th>Time est.</th><th>Type</th><th>Status</th></tr></thead>
+      <tbody>
+        ${filtered.map(t=>{
+          const rCol=ROLE_COL[t.role]||'var(--muted)';
+          const dCol=DEPT_COL[t.department]||'var(--muted)';
+          const od=t.overdue?'<span class="overdue-badge">overdue</span>':'';
+          const timeEl=t.time?`<span class="time-tag">${t.time}h</span>`:`<span style="font-family:var(--mono);font-size:11px;color:var(--muted)">no tag</span>`;
+          const dStr=t.due?t.due.toLocaleDateString('en-US',{month:'short',day:'numeric'}):'—';
+          return`<tr>
+            <td style="max-width:220px;word-break:break-word">${t.task}${od}</td>
+            <td style="color:var(--muted);font-size:12px">${t.client||'—'}</td>
+            <td style="font-family:var(--mono);font-size:12px">${t.assignee}</td>
+            <td>${t.role?badge(t.role,rCol):'<span style="color:var(--muted)">—</span>'}</td>
+            ${hasDept?`<td>${t.department?badge(t.department,dCol):'<span style="color:var(--muted)">—</span>'}</td>`:''}
+            <td style="font-family:var(--mono);font-size:12px;${t.overdue?'color:var(--red)':''}">${dStr}</td>
+            <td>${timeEl}</td>
+            <td><span class="task-tag">${t.type||'—'}</span></td>
+            <td style="font-size:12px;color:var(--muted)">${t.status||'—'}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table></div>`;
+}
+
+// ── API INTEGRATION ──────────────────────────────────────────────────
+const API_BASE   = 'https://api.doublehq.com';
+const LS_TAGMAP  = 'dbl_tag_map';
+
+// Hardcoded tag map — Financial Synergy tag IDs → hours
+// Add new entries here if new tags are created in Double
+const HARDCODED_TAGS = {
+  '1.0-moj27qsdob3xwxvc0zj':   1.0,
+  '0.5-moj27cf8g0naahuxioi':   0.5,
+  '3.5-moj2aqtuu9bg7yvlff':    3.5,
+  '0.25-moj2767bhaqxa6ed23u':  0.25,
+  '0.75-moj27ihrwgthdp72f':    0.75,
+  '2.0-moj28r9ezg5jcxa2gtm':   2.0,
+  '1.5-moj28en7pcqyrve8j88':   1.5,
+  '1.25-moj289f8pe03s8pwffa':  1.25,
+  '0.1-mppkjw2vafxdwb8ogfv':   0.1,
+  '3.0-moj2a8d23945jnriiw2':   3.0,
+};
+
+let apiToken      = null;
+let usersMap      = {};
+let clientsMap    = {};
+let endClosesMap  = {};
+let tagValuesMap  = { ...HARDCODED_TAGS }; // start pre-filled
+let discoveredTags= {};
+
+// ── PERSIST TAG MAP ───────────────────────────────────────────────────
+function loadTagMap(){
+  try{
+    const saved=JSON.parse(localStorage.getItem(LS_TAGMAP)||'{}');
+    // Merge: hardcoded takes priority, saved fills in any extras
+    tagValuesMap={ ...saved, ...HARDCODED_TAGS };
+  }catch(e){ tagValuesMap={ ...HARDCODED_TAGS }; }
+}
+function saveTagMap(){ localStorage.setItem(LS_TAGMAP,JSON.stringify(tagValuesMap)); }
+
+// ── AUTO-CONNECT ──────────────────────────────────────────────────────
+// Fetches token from the Netlify Function (no credentials needed from user).
+// Falls back to manual connect modal if the function is unavailable.
+async function autoConnect(){
+  setSrc('Connecting to Double…',false);
+  document.getElementById('src-api').style.display='block';
+  document.getElementById('nav-meta').textContent='Connecting to Double HQ…';
+  try{
+    const res=await fetch('/.netlify/functions/token');
+    if(!res.ok) throw new Error(`Function returned ${res.status}`);
+    const data=await res.json();
+    if(!data.token) throw new Error('No token in response');
+    apiToken=data.token;
+    document.getElementById('sb-refresh').style.display='flex';
+    await fetchAllApiData();
+  }catch(err){
+    // Fallback: show manual connect modal
+    setSrc('Auto-connect failed — connect manually',false);
+    document.getElementById('nav-meta').textContent='Connect your Double account to load data';
+    openModal('connect');
+  }
+}
+
+// ── CORE API HELPERS ─────────────────────────────────────────────────
+async function apiFetch(path){
+  const ctrl=new AbortController();
+  const timer=setTimeout(()=>ctrl.abort(),30000); // 30s per call
+  try{
+    const res=await fetch(API_BASE+path,{
+      headers:{'Authorization':`Bearer ${apiToken}`,'Content-Type':'application/json'},
+      signal:ctrl.signal
+    });
+    clearTimeout(timer);
+    if(res.status===401)throw new Error('TOKEN_EXPIRED');
+    if(res.status===429)throw new Error('Rate limit hit — wait 1 minute and click Refresh');
+    if(!res.ok)throw new Error(`API ${res.status} on ${path}`);
+    return res.json();
+  }catch(e){
+    clearTimeout(timer);
+    if(e.name==='AbortError')throw new Error(`Timeout (30s) on ${path}`);
+    throw e;
+  }
+}
+async function fetchPages(path,key,size=100,onProgress){
+  const all=[]; let off=0;
+  while(true){
+    const sep=path.includes('?')?'&':'?';
+    const data=await apiFetch(`${path}${sep}limit=${size}&offset=${off}`);
+    const items=key?(data[key]??data):data;
+    if(!Array.isArray(items)||items.length===0)break;
+    all.push(...items);
+    if(onProgress)onProgress(all.length);
+    if(items.length<size)break;
+    off+=size;
+  }
+  return all;
+}
+async function tryGetToken(cid,csec){
+  const ctrl=new AbortController();
+  const timer=setTimeout(()=>ctrl.abort(),7000); // 7s timeout
+  try{
+    const res=await fetch(`${API_BASE}/oauth/token`,{
+      method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body:new URLSearchParams({grant_type:'client_credentials',client_id:cid,client_secret:csec}),
+      signal:ctrl.signal
+    });
+    clearTimeout(timer);
+    if(!res.ok)throw new Error(`Token ${res.status}`);
+    const d=await res.json();
+    if(!d.access_token)throw new Error('No access_token in response');
+    return d.access_token;
+  }catch(e){
+    clearTimeout(timer);
+    throw e;
+  }
+}
+
+// ── BUSINESS DAY CALC ────────────────────────────────────────────────
+function nthBizDay(yearMonth,n){
+  // yearMonth like "202407"
+  const yr=parseInt(yearMonth.slice(0,4));
+  const mo=parseInt(yearMonth.slice(4,6))-1; // 0-indexed
+  let count=0; const d=new Date(yr,mo,1);
+  while(d.getMonth()===mo){
+    const dow=d.getDay();
+    if(dow!==0&&dow!==6){ count++; if(count===n)return new Date(d); }
+    d.setDate(d.getDate()+1);
+  }
+  return null;
+}
+
+// ── MAIN FETCH ───────────────────────────────────────────────────────
+function setSrc(msg,ok){ document.getElementById('src-api').style.display='block'; document.getElementById('src-api').innerHTML=`Double HQ API<br><span style="color:${ok?'var(--green)':'var(--yellow)'}">● </span>${msg}`; }
+
+async function fetchAllApiData(){
+  setSrc('Connecting…',false);
+  document.getElementById('sb-refresh').style.display='flex';
+
+  const log=[];
+  function step(msg){ log.push(msg); setSrc(msg,false); }
+
+  try{
+    step('Loading users…');
+    const users=await fetchPages('/api/users',null);
+    usersMap={};
+    users.forEach(u=>{ usersMap[u.id]={name:u.name,email:u.email}; });
+    step(`✓ ${users.length} users`);
+
+    step('Loading clients…');
+    const clients=await fetchPages('/api/clients',null);
+    clientsMap={};
+    clients.forEach(c=>{ clientsMap[c.id]=c.name; });
+    step(`✓ ${clients.length} clients`);
+
+    step('Loading end closes…');
+    const ecs=await fetchPages('/api/end-closes/summary/',null);
+    endClosesMap={};
+    ecs.forEach(ec=>{ if(ec.id)endClosesMap[ec.id]=ec.yearMonth; });
+    step(`✓ ${ecs.length} end closes`);
+
+    step('Loading non-closing tasks…');
+    const ncTasks=await fetchPages(
+      '/api/non-closing-tasks?type=CLIENT_TASKS',null,100,
+      n=>setSrc(`Loading non-closing tasks… ${n} loaded`,false)
+    );
+    step(`✓ ${ncTasks.length} non-closing tasks`);
+
+    step('Loading closing tasks…');
+    const cTasks=await fetchPages(
+      '/api/tasks/',null,100,
+      n=>setSrc(`Loading closing tasks… ${n} loaded`,false)
+    );
+    step(`✓ ${cTasks.length} closing tasks`);
+
+    step('Building task list…');
+    discoveredTags={};
+    const built=[];
+
+    function buildTask(t,dueDate,dueDateStr,typeName){
+      const tagId=t.tagId!=null?String(t.tagId):null;
+      if(tagId)discoveredTags[tagId]=true;
+      const user=usersMap[t.assignedTo]||{};
+      const dEntry=deptMap[user.name]||{};
+      return{
+        task:t.name||'Untitled',
+        assignee:user.name||'Unassigned',
+        role:dEntry.role||'',
+        client:clientsMap[t.clientId]||'',
+        due:dueDate,
+        dueStr:dueDateStr,
+        time:tagId?(tagValuesMap[tagId]??null):null,
+        timeStr:tagId||'',
+        type:typeName,
+        status:t.status||'',
+        overdue:dueDate?dueDate<today:false,
+        department:dEntry.department||'',
+      };
+    }
+
+    ncTasks.forEach(t=>{
+      const due=t.dueDate?pd(t.dueDate):null;
+      built.push(buildTask(t,due,t.dueDate||'','Non-closing'));
+    });
+
+    cTasks.forEach(t=>{
+      let due=null,dueStr='';
+      if(t.dueDate&&t.endCloseId&&endClosesMap[t.endCloseId]){
+        due=nthBizDay(endClosesMap[t.endCloseId],t.dueDate);
+        dueStr=due?iso(due):'';
+      }
+      built.push(buildTask(t,due,dueStr,'Closing'));
+    });
+
+    tasks=built;
+    populateFilters();
+
+    const n=tasks.length;
+    const od=tasks.filter(t=>t.overdue).length;
+    const ts=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+
+    document.getElementById('nav-meta').textContent=`${n} tasks · Double API · synced ${ts}`;
+    setSrc(`● ${n} tasks loaded · ${ts}`,true);
+
+    const b=document.getElementById('alert-badge');
+    b.textContent=od; b.style.display=od?'inline':'none';
+
+    // Auto-switch all views to "This month" so data is visible immediately
+    ['s','e','c','t'].forEach(p=>{
+      setRange(p, som(today), eom(today));
+    });
+    // Mark "Month" buttons as active
+    document.querySelectorAll('.cb-grp').forEach(grp=>{
+      grp.querySelectorAll('.tb').forEach(b=>b.classList.remove('on'));
+      const monthBtn=[...grp.querySelectorAll('.tb')].find(b=>b.textContent.trim()==='Month'||b.textContent.trim()==='This month');
+      if(monthBtn)monthBtn.classList.add('on');
+    });
+
+    // Show success summary in sidebar
+    document.getElementById('src-api').innerHTML=
+      `Double HQ API<br>`+
+      `<span style="color:var(--green)">● </span>${n} tasks · ${ts}<br>`+
+      `<span style="color:var(--muted);font-size:9px">${users.length} users · ${clients.length} clients</span>`;
+
+    // Check for unmapped tags
+    const unmapped=Object.keys(discoveredTags).filter(id=>tagValuesMap[id]===undefined);
+    if(unmapped.length){
+      openTagMapModal();
+    } else {
+      renderSummary();renderEmployee();renderClient();renderTask();
+    }
+
+  }catch(err){
+    if(err.message==='TOKEN_EXPIRED'){
+      apiToken=null;localStorage.removeItem(LS_TOKEN);
+      setSrc('Token expired — reconnect',false);
+      document.getElementById('src-api').innerHTML=`Double HQ API<br><span style="color:var(--red)">✕ </span>Token expired`;
+      openModal('connect');
+    }else{
+      const msg=`Error: ${err.message}`;
+      setSrc(msg,false);
+      document.getElementById('src-api').innerHTML=`Double HQ API<br><span style="color:var(--red)">✕ </span>${err.message}`;
+      console.error('Double API error:',err);
+      // Show error in nav so user sees it
+      document.getElementById('nav-meta').textContent=`Double API error: ${err.message}`;
+    }
+  }
+}
+
+async function refreshApi(){
+  if(!apiToken){openModal('connect');return;}
+  await fetchAllApiData();
+}
+
+// ── CONNECT MODAL ────────────────────────────────────────────────────
+function rebuildCurl(){
+  const cid=(document.getElementById('inp-cid').value||'').trim()||'YOUR_CLIENT_ID';
+  const csec=(document.getElementById('inp-csec').value||'').trim()||'YOUR_CLIENT_SECRET';
+  document.getElementById('curl-cmd').textContent=
+    `curl -X POST "https://api.doublehq.com/oauth/token" -H "Content-Type: application/x-www-form-urlencoded" -d "grant_type=client_credentials&client_id=${cid}&client_secret=${csec}"`;
+}
+function copyCurl(btn){
+  const text=document.getElementById('curl-cmd').textContent;
+  navigator.clipboard.writeText(text).then(()=>{
+    btn.textContent='Copied!';btn.style.color='var(--green)';
+    setTimeout(()=>{btn.textContent='Copy';btn.style.color='';},2000);
+  }).catch(()=>{
+    // fallback: select text
+    const el=document.getElementById('curl-cmd');
+    const sel=window.getSelection();const range=document.createRange();
+    range.selectNodeContents(el);sel.removeAllRanges();sel.addRange(range);
+  });
+}
+function setMsConnect(type,msg){
+  const el=document.getElementById('ms-connect');
+  el.className='mstatus'+(type?' '+type:'');el.textContent=msg;
+}
+function doConnect(){
+  const tok=(document.getElementById('inp-mtoken').value||'').trim();
+  if(!tok){
+    setMsConnect('err','Please paste your access_token in Step 2 before connecting.');
+    document.getElementById('inp-mtoken').focus();
+    return;
+  }
+  apiToken=tok;
+  setMsConnect('ok','✓ Token saved — loading data from Double…');
+  setTimeout(()=>{ closeModal('connect'); fetchAllApiData(); },600);
+}
+
+// ── TAG MAP MODAL ────────────────────────────────────────────────────
+function openTagMapModal(){
+  const allIds=[...new Set([...Object.keys(discoveredTags),...Object.keys(tagValuesMap)])].sort((a,b)=>Number(a)-Number(b));
+  const rows=document.getElementById('tagmap-rows');
+  if(!allIds.length){
+    rows.innerHTML='<div style="color:var(--muted);font-size:13px">No tags found yet. Connect to Double first to discover tag IDs.</div>';
+  }else{
+    rows.innerHTML=`<div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-bottom:4px">TIP: use 0.25 increments (0.25, 0.50, 0.75, 1.00 …)</div>`+
+    allIds.map(id=>{
+      const cur=tagValuesMap[id]!==undefined?tagValuesMap[id]:'';
+      const isNew=discoveredTags[id]&&tagValuesMap[id]===undefined;
+      return`<div class="frow">
+        <span class="fname" style="${isNew?'color:var(--yellow)':''}">Tag ID ${id}${isNew?' <span style="font-size:10px;opacity:.7">(new)</span>':''}</span>
+        <input type="number" class="fsel" id="tmi-${id}" value="${cur}" step="0.25" min="0.25" max="24" placeholder="hours">
+      </div>`;
+    }).join('');
+  }
+  openModal('tagmap');
+}
+function saveTagMapping(){
+  const allIds=[...new Set([...Object.keys(discoveredTags),...Object.keys(tagValuesMap)])];
+  allIds.forEach(id=>{
+    const inp=document.getElementById('tmi-'+id);
+    if(inp){ const v=parseFloat(inp.value); if(!isNaN(v)&&v>0)tagValuesMap[id]=Math.round(v*100)/100; }
+  });
+  saveTagMap();
+  // Re-apply to already loaded tasks
+  tasks.forEach(t=>{
+    if(t.timeStr){ const v=tagValuesMap[t.timeStr]; t.time=v!==undefined?v:null; }
+  });
+  const ms=document.getElementById('ms-tagmap');
+  ms.className='mstatus ok';ms.textContent=`✓ Saved ${Object.keys(tagValuesMap).length} tag mappings`;
+  setTimeout(()=>{ closeModal('tagmap'); renderSummary();renderEmployee();renderClient();renderTask(); },700);
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────
+wireDZ('dz-main','fi-main',loadMainFile);
+wireDZ('dz-dept','fi-dept',loadDeptFile);
+loadTagMap();
+initDates();
+// Auto-connect on load — no credentials needed from the user
+autoConnect();
+</script>
+</body>
+</html>
