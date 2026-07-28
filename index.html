@@ -151,13 +151,63 @@ select.ci option{background:var(--surface2)}
 /* SCROLLBAR */
 ::-webkit-scrollbar{width:5px}
 ::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:3px}
+
+/* ── LOADING SCREEN ─────────────────────────────────────────────── */
+.load-screen{position:fixed;inset:0;background:var(--bg);z-index:300;display:flex;align-items:center;justify-content:center;opacity:1;transition:opacity .4s}
+.load-screen.fade{opacity:0;pointer-events:none}
+.load-card{background:var(--surface);border:1px solid var(--border2);border-radius:16px;padding:40px 48px;width:420px;display:flex;flex-direction:column;gap:18px}
+.load-brand-row{display:flex;align-items:center;gap:10px;font-weight:700;font-size:13px;letter-spacing:.06em;text-transform:uppercase}
+.load-title{font-size:18px;font-weight:600;color:var(--text)}
+.load-step{display:flex;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--muted);transition:color .2s}
+.load-step:last-child{border-bottom:none}
+.load-step.done{color:var(--text)}
+.load-step.active{color:var(--accent)}
+.ls-ic{width:18px;text-align:center;font-size:13px;flex-shrink:0}
+.ls-count{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--green)}
+.load-prog-wrap{background:var(--surface3);border-radius:3px;height:4px;overflow:hidden}
+.load-prog-fill{height:100%;background:var(--accent);border-radius:3px;transition:width .6s cubic-bezier(.4,0,.2,1);width:0%}
+.load-hint{font-size:11px;color:var(--muted);text-align:center;line-height:1.6}
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+.spin{display:inline-block;animation:spin .7s linear infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── NAV STATUS PILL ─────────────────────────────────────────────── */
+.nav-pill{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;color:var(--muted);background:var(--surface2);border:1px solid var(--border2);border-radius:20px;padding:4px 12px}
+.nav-pill .np-dot{width:6px;height:6px;border-radius:50%;background:var(--muted);flex-shrink:0;transition:background .3s}
+.nav-pill.connected .np-dot{background:var(--green);box-shadow:0 0 6px var(--green)}
+.nav-pill.loading .np-dot{background:var(--yellow);animation:pulse 1s infinite}
+.nav-pill.error .np-dot{background:var(--red)}
+
+/* ── SIDEBAR REFRESH BUTTON ─────────────────────────────────────── */
+.sb-refresh-btn{display:none;margin:4px 12px 8px;padding:9px 14px;background:var(--accent2);border:1px solid var(--accent);border-radius:8px;color:white;font-size:12px;font-family:var(--sans);font-weight:600;cursor:pointer;width:calc(100% - 24px);text-align:center;transition:background .15s;letter-spacing:.01em}
+.sb-refresh-btn:hover{background:var(--accent)}
+
+/* ── POLISH ──────────────────────────────────────────────────────── */
+.tb{font-family:var(--mono);font-size:11px;padding:5px 12px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap}
+.tb:hover{color:var(--text);background:var(--surface2)}
+.tb.on{background:var(--accent2);border-color:var(--accent);color:#fff;font-weight:500}
+.btn{font-family:var(--mono);font-size:11px;padding:8px 16px;border-radius:8px;border:1px solid var(--border2);background:var(--surface3);color:var(--text);cursor:pointer;transition:all .15s;white-space:nowrap;font-weight:500}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.primary{background:var(--accent2);border-color:var(--accent);color:#fff}
+.btn.primary:hover{background:var(--accent)}
 </style>
 </head>
 <body>
 
+<!-- LOADING SCREEN -->
+<div class="load-screen" id="load-screen" style="display:none">
+  <div class="load-card">
+    <div class="load-brand-row"><div class="dot"></div>Capacity Planner</div>
+    <div class="load-title" id="load-title">Connecting to Double HQ…</div>
+    <div id="load-steps"></div>
+    <div class="load-prog-wrap"><div class="load-prog-fill" id="load-prog"></div></div>
+    <div class="load-hint">Loading your team's tasks from Double.<br>This takes 20–60 seconds on first load.</div>
+  </div>
+</div>
+
 <nav>
-  <div class="nav-brand"><div class="dot"></div>Financial Synergy — Capacity Planner</div>
-  <div class="nav-meta" id="nav-meta">No data loaded · Import a CSV from Double HQ</div>
+  <div class="nav-brand"><div class="dot"></div>Capacity Planner</div>
+  <div class="nav-pill" id="nav-pill"><div class="np-dot"></div><span id="nav-pill-text">Not connected</span></div>
 </nav>
 
 <div class="shell">
@@ -171,19 +221,19 @@ select.ci option{background:var(--surface2)}
     <div class="sb-item" onclick="showPage('client')"><span class="ic">🏢</span> By Client</div>
     <div class="sb-item" onclick="showPage('task')"><span class="ic">✅</span> By Task</div>
 
-    <div class="sb-label" style="margin-top:16px">Data — API</div>
-    <div class="sb-item" onclick="openModal('connect')"><span class="ic">🔌</span> Connect to Double</div>
-    <div class="sb-item" onclick="openTagMapModal()"><span class="ic">🏷</span> Tag → Hours Map</div>
-    <div class="sb-item" id="sb-refresh" onclick="refreshApi()" style="display:none"><span class="ic">🔄</span> Refresh data</div>
+    <div class="sb-label" style="margin-top:16px">Connection</div>
+    <button class="sb-refresh-btn" id="sb-refresh" onclick="refreshApi()">↻ &nbsp;Refresh Data</button>
+    <div class="sb-item" onclick="openModal('connect')"><span class="ic">🔌</span> Reconnect</div>
+    <div class="sb-item" onclick="openTagMapModal()"><span class="ic">⏱</span> Configure Tags</div>
 
-    <div class="sb-label" style="margin-top:8px">Data — CSV fallback</div>
-    <div class="sb-item" onclick="openModal('main')"><span class="ic">⬆</span> Import CSV</div>
-    <div class="sb-item" onclick="openModal('dept')"><span class="ic">📋</span> Import Dept. Legend</div>
+    <div class="sb-label" style="margin-top:8px">Manual Import</div>
+    <div class="sb-item" onclick="openModal('main')"><span class="ic">⬆</span> Upload CSV</div>
+    <div class="sb-item" onclick="openModal('dept')"><span class="ic">🏷</span> Upload Dept. Legend</div>
 
     <div class="sb-foot">
-      <div class="sb-foot-label">Source</div>
-      <div class="sb-foot-val" id="src-api" style="display:none">Double HQ API<br><span style="color:var(--yellow)">◌ </span>Not connected</div>
-      <div class="sb-foot-val" id="src-tasks">Double HQ CSV<br><span style="color:var(--yellow)">◌ </span>No file loaded</div>
+      <div class="sb-foot-label">Data Source</div>
+      <div class="sb-foot-val" id="src-api" style="display:none">Double HQ API<br><span style="color:var(--muted)">◌ </span>Not connected</div>
+      <div class="sb-foot-val" id="src-tasks" style="display:none">Double HQ CSV<br><span style="color:var(--yellow)">◌ </span>No file loaded</div>
       <div class="sb-foot-val" id="src-dept" style="margin-top:8px;display:none">Dept. legend<br><span style="color:var(--yellow)">◌ </span>Not loaded</div>
     </div>
   </aside>
@@ -209,7 +259,7 @@ select.ci option{background:var(--surface2)}
         <span class="cb-lbl">Role</span><select class="ci" id="s-role" onchange="renderSummary()"><option value="">All</option></select>
         <span class="cb-lbl">Employee</span><select class="ci" id="s-emp" onchange="renderSummary()"><option value="">All</option></select>
       </div>
-      <div id="summary-content"><div class="es"><div class="ei">📂</div>Import a CSV from Double HQ to see your capacity summary.</div></div>
+      <div id="summary-content"><div class="es"><div class="ei">⚡</div><strong style="color:var(--text)">Ready to load</strong><br>The app will connect automatically when you open it.</div></div>
     </div>
 
     <!-- EMPLOYEE -->
@@ -238,7 +288,7 @@ select.ci option{background:var(--surface2)}
           <div class="leg-item"><div class="leg-dot" style="background:var(--green)"></div>&lt;4h</div>
         </div>
       </div>
-      <div id="employee-content"><div class="es"><div class="ei">📂</div>Import a CSV from Double HQ to see employee capacity.</div></div>
+      <div id="employee-content"><div class="es"><div class="ei">👤</div><strong style="color:var(--text)">No data yet</strong><br>Connect to Double or upload a CSV to get started.</div></div>
     </div>
 
     <!-- CLIENT -->
@@ -258,7 +308,7 @@ select.ci option{background:var(--surface2)}
         <span class="cb-lbl">Dept</span><select class="ci" id="c-dept" onchange="renderClient()"><option value="">All</option></select>
         <span class="cb-lbl">Type</span><select class="ci" id="c-type" onchange="renderClient()"><option value="">All</option></select>
       </div>
-      <div id="client-content"><div class="es"><div class="ei">📂</div>Import a CSV from Double HQ to see the client breakdown.</div></div>
+      <div id="client-content"><div class="es"><div class="ei">🏢</div><strong style="color:var(--text)">No data yet</strong><br>Connect to Double or upload a CSV to get started.</div></div>
     </div>
 
     <!-- TASK -->
@@ -286,7 +336,7 @@ select.ci option{background:var(--surface2)}
           <option value="notag">No time tag</option>
         </select>
       </div>
-      <div id="task-content"><div class="es"><div class="ei">📂</div>Import a CSV from Double HQ to see the task list.</div></div>
+      <div id="task-content"><div class="es"><div class="ei">✅</div><strong style="color:var(--text)">No data yet</strong><br>Connect to Double or upload a CSV to get started.</div></div>
     </div>
 
   </main>
@@ -1028,7 +1078,7 @@ function renderTask(){
   if(!filtered.length){document.getElementById('task-content').innerHTML='<div class="es"><div class="ei">🔍</div>No tasks match the current filters.</div>';return}
 
   document.getElementById('task-content').innerHTML=`
-    <div style="font-family:var(--mono);font-size:11px;color:var(--muted)">${filtered.length} task${filtered.length!==1?'s':''} shown</div>
+    <div style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-bottom:4px">${filtered.length} task${filtered.length!==1?'s':''} shown</div>
     <div class="dt"><table>
       <thead><tr><th>Task</th><th>Client</th><th>Assignee</th><th>Role</th>${hasDept?'<th>Dept</th>':''}<th>Due</th><th>Time est.</th><th>Type</th><th>Status</th></tr></thead>
       <tbody>
@@ -1082,33 +1132,22 @@ let discoveredTags= {};
 
 // ── PERSIST TAG MAP ───────────────────────────────────────────────────
 function loadTagMap(){
-  try{
-    const saved=JSON.parse(localStorage.getItem(LS_TAGMAP)||'{}');
-    // Merge: hardcoded takes priority, saved fills in any extras
-    tagValuesMap={ ...saved, ...HARDCODED_TAGS };
-  }catch(e){ tagValuesMap={ ...HARDCODED_TAGS }; }
+  try{ tagValuesMap={...JSON.parse(localStorage.getItem(LS_TAGMAP)||'{}'),...HARDCODED_TAGS}; }
+  catch(e){ tagValuesMap={...HARDCODED_TAGS}; }
 }
 function saveTagMap(){ localStorage.setItem(LS_TAGMAP,JSON.stringify(tagValuesMap)); }
 
-// ── AUTO-CONNECT ──────────────────────────────────────────────────────
-// Fetches token from the Netlify Function (no credentials needed from user).
-// Falls back to manual connect modal if the function is unavailable.
 async function autoConnect(){
-  setSrc('Connecting to Double…',false);
-  document.getElementById('src-api').style.display='block';
-  document.getElementById('nav-meta').textContent='Connecting to Double HQ…';
+  setNavPill('loading','Connecting…');
   try{
     const res=await fetch('/.netlify/functions/token');
-    if(!res.ok) throw new Error(`Function returned ${res.status}`);
+    if(!res.ok) throw new Error(`Function ${res.status}`);
     const data=await res.json();
-    if(!data.token) throw new Error('No token in response');
+    if(!data.token) throw new Error('No token');
     apiToken=data.token;
-    document.getElementById('sb-refresh').style.display='flex';
     await fetchAllApiData();
   }catch(err){
-    // Fallback: show manual connect modal
-    setSrc('Auto-connect failed — connect manually',false);
-    document.getElementById('nav-meta').textContent='Connect your Double account to load data';
+    setNavPill('','Not connected');
     openModal('connect');
   }
 }
@@ -1182,59 +1221,127 @@ function nthBizDay(yearMonth,n){
   return null;
 }
 
-// ── MAIN FETCH ───────────────────────────────────────────────────────
-function setSrc(msg,ok){ document.getElementById('src-api').style.display='block'; document.getElementById('src-api').innerHTML=`Double HQ API<br><span style="color:${ok?'var(--green)':'var(--yellow)'}">● </span>${msg}`; }
+// ── LOADING SCREEN ────────────────────────────────────────────────────
+const LS_STEPS=[
+  {id:'auth',    label:'Authenticating',      pct:8},
+  {id:'users',   label:'Loading team members',pct:20},
+  {id:'clients', label:'Loading clients',     pct:35},
+  {id:'closes',  label:'Loading close periods',pct:50},
+  {id:'nctasks', label:'Loading tasks',       pct:70},
+  {id:'ctasks',  label:'Loading close tasks', pct:85},
+  {id:'build',   label:'Building dashboard',  pct:95},
+];
+
+function showLoadScreen(){
+  const s=document.getElementById('load-screen');
+  s.style.display='flex'; s.classList.remove('fade');
+  document.getElementById('load-steps').innerHTML=LS_STEPS.map(step=>
+    `<div class="load-step" id="lst-${step.id}"><span class="ls-ic">◦</span><span>${step.label}</span><span class="ls-count" id="lsc-${step.id}"></span></div>`
+  ).join('');
+  setNavPill('loading','Connecting…');
+}
+function setLoadStep(id,state,count=''){
+  const el=document.getElementById('lst-'+id); if(!el)return;
+  el.className='load-step '+state;
+  const ic=el.querySelector('.ls-ic');
+  if(state==='done') ic.textContent='✓';
+  else if(state==='active') ic.innerHTML='<span class="spin">⟳</span>';
+  else ic.textContent='◦';
+  if(count) document.getElementById('lsc-'+id).textContent=count;
+  const step=LS_STEPS.find(s=>s.id===id);
+  if(step) document.getElementById('load-prog').style.width=step.pct+'%';
+}
+function hideLoadScreen(){
+  document.getElementById('load-prog').style.width='100%';
+  setTimeout(()=>{
+    const s=document.getElementById('load-screen');
+    s.classList.add('fade');
+    setTimeout(()=>s.style.display='none',400);
+  },400);
+}
+function setNavPill(state,text){
+  const p=document.getElementById('nav-pill'); if(!p)return;
+  p.className='nav-pill '+(state||'');
+  document.getElementById('nav-pill-text').textContent=text||'';
+}
+function setSrc(msg,ok){
+  document.getElementById('src-api').style.display='block';
+  document.getElementById('src-api').innerHTML=`Double HQ API<br><span style="color:${ok?'var(--green)':'var(--yellow)'}">● </span>${msg}`;
+}
 
 async function fetchAllApiData(){
-  setSrc('Connecting…',false);
-  document.getElementById('sb-refresh').style.display='flex';
-
-  const log=[];
-  function step(msg){ log.push(msg); setSrc(msg,false); }
-
+  showLoadScreen();
   try{
-    step('Loading users…');
+    setLoadStep('auth','active');
+    // Token already loaded — just mark done
+    setLoadStep('auth','done');
+
+    setLoadStep('users','active');
     const users=await fetchPages('/api/users',null);
     usersMap={};
     users.forEach(u=>{ usersMap[u.id]={name:u.name,email:u.email}; });
-    step(`✓ ${users.length} users`);
+    setLoadStep('users','done',users.length+' members');
 
-    step('Loading clients…');
+    setLoadStep('clients','active');
     const clients=await fetchPages('/api/clients',null);
     clientsMap={};
     clients.forEach(c=>{ clientsMap[c.id]=c.name; });
-    step(`✓ ${clients.length} clients`);
+    setLoadStep('clients','done',clients.length+' clients');
 
-    step('Loading end closes…');
+    setLoadStep('closes','active');
     const ecs=await fetchPages('/api/end-closes/summary/',null);
     endClosesMap={};
-    ecs.forEach(ec=>{ if(ec.id)endClosesMap[ec.id]=ec.yearMonth; });
-    step(`✓ ${ecs.length} end closes`);
+    const doneCloses=new Set();
+    ecs.forEach(ec=>{
+      if(ec.id){
+        endClosesMap[ec.id]=ec.yearMonth;
+        const s=(ec.status||'').toLowerCase();
+        const prog=parseFloat(ec.progress||'0');
+        if(s==='done'||s==='completed'||s==='closed'||prog>=100)doneCloses.add(ec.id);
+      }
+    });
+    setLoadStep('closes','done',ecs.length+' periods');
 
-    // Date filter: last 60 days only — reduces ~50k records to a few hundred
-    const since60 = new Date(today);
-    since60.setDate(since60.getDate() - 60);
-    const sinceISO = since60.toISOString();
+    function isComplete(t){
+      if(t.completedAt!=null)return true;
+      const v=(t.status||'').trim().toLowerCase().replace(/[\s_-]+/g,'');
+      return v==='done'||v==='canceled'||v==='cancelled'||v==='completed'||v==='complete'||v==='closed';
+    }
 
-    step('Loading non-closing tasks…');
+    const since60=new Date(today);
+    since60.setDate(since60.getDate()-60);
+    const sinceISO=since60.toISOString();
+    const cutoff30=new Date(today);
+    cutoff30.setDate(cutoff30.getDate()-30);
+
+    setLoadStep('nctasks','active');
     const ncTasks=await fetchPages(
       `/api/non-closing-tasks?type=CLIENT_TASKS&updatedFromTimestamp=${encodeURIComponent(sinceISO)}`,null,100,
-      n=>setSrc(`Loading non-closing tasks… ${n} loaded`,false)
+      n=>setLoadStep('nctasks','active',n+' loaded…')
     );
-    // Exclude completed tasks — only active and overdue
-    const ncActive = ncTasks.filter(t => t.status !== 'done' && t.status !== 'cancelled' && t.deletedAt == null);
-    step(`✓ ${ncActive.length} active non-closing tasks (of ${ncTasks.length})`);
+    const ncActive=ncTasks.filter(t=>!isComplete(t)&&t.deletedAt==null);
+    setLoadStep('nctasks','done',ncActive.length+' active');
 
-    step('Loading closing tasks…');
+    setLoadStep('ctasks','active');
     const cTasks=await fetchPages(
       `/api/tasks/?updatedFromTimestamp=${encodeURIComponent(sinceISO)}`,null,100,
-      n=>setSrc(`Loading closing tasks… ${n} loaded`,false)
+      n=>setLoadStep('ctasks','active',n+' loaded…')
     );
-    // Exclude completed tasks
-    const cActive = cTasks.filter(t => t.status !== 'done' && t.status !== 'completed');
-    step(`✓ ${cActive.length} active closing tasks (of ${cTasks.length})`);
+    const cActive=cTasks.filter(t=>{
+      if(doneCloses.has(t.endCloseId))return false;
+      if(isComplete(t))return false;
+      if(t.dueDate&&t.endCloseId&&endClosesMap[t.endCloseId]){
+        const ym=endClosesMap[t.endCloseId];
+        const yr=parseInt(ym.slice(0,4));
+        const mo=parseInt(ym.slice(4,6))-1;
+        const due=new Date(yr,mo+1,t.dueDate);
+        if(due<cutoff30)return false;
+      }
+      return true;
+    });
+    setLoadStep('ctasks','done',cActive.length+' active');
 
-    step('Building task list…');
+    setLoadStep('build','active');
     discoveredTags={};
     const built=[];
 
@@ -1248,8 +1355,7 @@ async function fetchAllApiData(){
         assignee:user.name||'Unassigned',
         role:dEntry.role||'',
         client:clientsMap[t.clientId]||'',
-        due:dueDate,
-        dueStr:dueDateStr,
+        due:dueDate,dueStr:dueDateStr,
         time:tagId?(tagValuesMap[tagId]??null):null,
         timeStr:tagId||'',
         type:typeName,
@@ -1263,67 +1369,56 @@ async function fetchAllApiData(){
       const due=t.dueDate?pd(t.dueDate):null;
       built.push(buildTask(t,due,t.dueDate||'','Non-closing'));
     });
-
     cActive.forEach(t=>{
       let due=null,dueStr='';
       if(t.dueDate&&t.endCloseId&&endClosesMap[t.endCloseId]){
-        due=nthBizDay(endClosesMap[t.endCloseId],t.dueDate);
-        dueStr=due?iso(due):'';
+        const ym=endClosesMap[t.endCloseId];
+        const yr=parseInt(ym.slice(0,4));
+        const mo=parseInt(ym.slice(4,6))-1;
+        due=new Date(yr,mo+1,t.dueDate);
+        dueStr=iso(due);
       }
       built.push(buildTask(t,due,dueStr,'Closing'));
     });
 
     tasks=built;
     populateFilters();
+    setLoadStep('build','done',built.length+' tasks');
 
     const n=tasks.length;
     const od=tasks.filter(t=>t.overdue).length;
     const ts=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
 
-    document.getElementById('nav-meta').textContent=`${n} tasks · Double API · synced ${ts}`;
-    setSrc(`● ${n} tasks loaded · ${ts}`,true);
+    setSrc(`${n} tasks · synced ${ts}`,true);
+    setNavPill('connected',`${n} tasks · ${ts}`);
 
-    const b=document.getElementById('alert-badge');
-    b.textContent=od; b.style.display=od?'inline':'none';
+    const badge=document.getElementById('alert-badge');
+    badge.textContent=od;badge.style.display=od?'inline':'none';
+    document.getElementById('sb-refresh').style.display='block';
 
-    // Auto-switch all views to "This month" so data is visible immediately
-    ['s','e','c','t'].forEach(p=>{
-      setRange(p, som(today), eom(today));
-    });
-    // Mark "Month" buttons as active
+    ['s','e','c','t'].forEach(p=>setRange(p,som(today),eom(today)));
     document.querySelectorAll('.cb-grp').forEach(grp=>{
       grp.querySelectorAll('.tb').forEach(b=>b.classList.remove('on'));
-      const monthBtn=[...grp.querySelectorAll('.tb')].find(b=>b.textContent.trim()==='Month'||b.textContent.trim()==='This month');
-      if(monthBtn)monthBtn.classList.add('on');
+      const m=[...grp.querySelectorAll('.tb')].find(b=>b.textContent.trim()==='Month'||b.textContent.trim()==='This month');
+      if(m)m.classList.add('on');
     });
 
-    // Show success summary in sidebar
-    document.getElementById('src-api').innerHTML=
-      `Double HQ API<br>`+
-      `<span style="color:var(--green)">● </span>${n} tasks · ${ts}<br>`+
-      `<span style="color:var(--muted);font-size:9px">${users.length} users · ${clients.length} clients</span>`;
-
-    // Check for unmapped tags
     const unmapped=Object.keys(discoveredTags).filter(id=>tagValuesMap[id]===undefined);
-    if(unmapped.length){
-      openTagMapModal();
-    } else {
-      renderSummary();renderEmployee();renderClient();renderTask();
-    }
+    hideLoadScreen();
+    if(unmapped.length){openTagMapModal();}
+    else{renderSummary();renderEmployee();renderClient();renderTask();}
 
   }catch(err){
+    hideLoadScreen();
     if(err.message==='TOKEN_EXPIRED'){
-      apiToken=null;localStorage.removeItem(LS_TOKEN);
+      apiToken=null;
       setSrc('Token expired — reconnect',false);
-      document.getElementById('src-api').innerHTML=`Double HQ API<br><span style="color:var(--red)">✕ </span>Token expired`;
+      setNavPill('error','Token expired');
       openModal('connect');
     }else{
-      const msg=`Error: ${err.message}`;
-      setSrc(msg,false);
-      document.getElementById('src-api').innerHTML=`Double HQ API<br><span style="color:var(--red)">✕ </span>${err.message}`;
-      console.error('Double API error:',err);
-      // Show error in nav so user sees it
-      document.getElementById('nav-meta').textContent=`Double API error: ${err.message}`;
+      setSrc(`Error: ${err.message}`,false);
+      setNavPill('error','Connection error');
+      console.error('Double API:',err);
     }
   }
 }
@@ -1408,7 +1503,6 @@ wireDZ('dz-main','fi-main',loadMainFile);
 wireDZ('dz-dept','fi-dept',loadDeptFile);
 loadTagMap();
 initDates();
-// Auto-connect on load — no credentials needed from the user
 autoConnect();
 </script>
 </body>
